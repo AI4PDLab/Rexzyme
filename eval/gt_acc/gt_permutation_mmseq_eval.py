@@ -125,6 +125,30 @@ def write_fasta_indexed(path: str, sequences: List[str]) -> None:
             f.write(f">{i}\n{seq}\n")
 
 
+def load_molecule_metadata(inference_folder: str) -> Dict[str, str]:
+    meta_files = [f for f in os.listdir(inference_folder) if "molecule_input_metadata" in f]
+    if meta_files:
+        with open(os.path.join(inference_folder, meta_files[0]), "r") as f:
+            data = json.load(f)
+        if data and all(isinstance(v, str) for v in data.values()):
+            return data
+
+    inference_metadata_path = os.path.join(inference_folder, "inference_metadata.json")
+    if not os.path.exists(inference_metadata_path):
+        raise FileNotFoundError("molecule_input_metadata*.json or inference_metadata.json not found")
+
+    with open(inference_metadata_path, "r") as f:
+        data = json.load(f)
+
+    out: Dict[str, str] = {}
+    for path, meta in data.items():
+        if isinstance(meta, dict) and "Smiles" in meta:
+            out[path] = meta["Smiles"]
+    if not out:
+        raise ValueError(f"No FASTA-to-SMILES entries found in {inference_metadata_path}")
+    return out
+
+
 def concat_inference_fastas(
     inference_folder: str,
     molecule_metadata: Dict[str, str],
@@ -404,11 +428,7 @@ def main() -> None:
     )
     args = ap.parse_args()
 
-    meta_files = [f for f in os.listdir(args.inference_folder) if "molecule_input_metadata" in f]
-    if not meta_files:
-        raise FileNotFoundError("molecule_input_metadata*.json not found")
-    with open(os.path.join(args.inference_folder, meta_files[0]), "r") as f:
-        molecule_metadata = json.load(f)
+    molecule_metadata = load_molecule_metadata(args.inference_folder)
 
     unique_targets, mol_to_gt, _ = collect_unique_gt_and_per_molecule(args.gt_fasta_folder)
     if not unique_targets:

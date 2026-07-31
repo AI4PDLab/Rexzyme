@@ -37,11 +37,31 @@ if __name__ == '__main__':
                         help='Optional residue-binding annotation field')
     args = parser.parse_args()
 
-    input_metadata_file = [f for f in os.listdir(args.inference_folder) if 'molecule_input_metadata' in f]
-    if len(input_metadata_file) != 0:
+    def load_molecule_metadata(inference_folder):
+        molecule_metadata_files = [
+            f for f in os.listdir(inference_folder) if 'molecule_input_metadata' in f
+        ]
+        if molecule_metadata_files:
+            metadata_path = os.path.join(inference_folder, molecule_metadata_files[0])
+            data = json.load(open(metadata_path))
+            if data and all(isinstance(v, str) for v in data.values()):
+                return data
+
+        inference_metadata_path = os.path.join(inference_folder, 'inference_metadata.json')
+        if not os.path.exists(inference_metadata_path):
+            return None
+
+        data = json.load(open(inference_metadata_path))
+        out = {}
+        for path, meta in data.items():
+            if not isinstance(meta, dict) or 'Smiles' not in meta:
+                continue
+            out[path] = meta['Smiles']
+        return out or None
+
+    input_metadata = load_molecule_metadata(args.inference_folder)
+    if input_metadata is not None:
         print("Reading molecule to output protein file correspondences from metadata")
-        metadata_path = os.path.join(args.inference_folder, input_metadata_file[0])
-        input_metadata = json.load(open(metadata_path))
         smiles_list = list(input_metadata.values())
         input_metadata_by_basename = {}
         for path, smi in input_metadata.items():

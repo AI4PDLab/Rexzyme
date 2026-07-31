@@ -10,6 +10,7 @@ import numpy as np
 import torch.nn.functional as F
 from datetime import datetime
 from collections import defaultdict
+from pathlib import Path
 
 
 def compute_transition_scores(sequences, scores, pad_token_id, normalize_by_length=True):
@@ -69,9 +70,9 @@ if __name__ == '__main__':
         description='Rexzyme inference',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('--input_file', default=None, type=str,
+    parser.add_argument('--input_file', required=True, type=str,
                         help='File with the input molecule SMILES')
-    parser.add_argument('--model_path', default=None, type=str,
+    parser.add_argument('--model_path', required=True, type=str,
                         help='Path to model to load')
     parser.add_argument('--tokenizer_aa', type=str, required=True,
                         help='Path or Hugging Face repo ID for amino acid tokenizer')
@@ -101,20 +102,28 @@ if __name__ == '__main__':
     tokenizer_mol = load_tokenizer(args.tokenizer_mol, subfolder=args.tokenizer_mol_subfolder)
 
     # Load data
-    smiles_list = set()
+    smiles_list = []
+    seen_smiles = set()
     gt_dict = None
+
+    def add_smiles(smiles):
+        if smiles is None or smiles in seen_smiles:
+            return
+        smiles_list.append(smiles)
+        seen_smiles.add(smiles)
 
     def read_entry(entry):
         rxn = entry["translation"].get("Reaction") or entry["translation"].get("Canonical Smiles")
         gt_prot = entry["translation"].get("Sequence") or entry["translation"].get("Protein sequence")
-        smiles_list.add(rxn)
+        add_smiles(rxn)
         if isinstance(gt_prot, list):
             for seq in gt_prot:
                 gt_dict[rxn].append({"Sequence": seq})
         else:
             gt_dict[rxn].append({"Sequence": gt_prot})
 
-    if 'json' in args.input_file:
+    input_suffix = Path(args.input_file).suffix.lower()
+    if input_suffix in {'.json', '.jsonl'}:
         gt_dict = defaultdict(list)
         with open(args.input_file) as f:
             text = f.read().strip()
@@ -132,7 +141,7 @@ if __name__ == '__main__':
     else:
         with open(args.input_file, 'r') as input_file:
             for line in input_file:
-                smiles_list.add(line.strip())
+                add_smiles(line.strip())
 
     # Load model
     model = AutoModelForSeq2SeqLM.from_pretrained(args.model_path)
@@ -148,6 +157,7 @@ if __name__ == '__main__':
     print(f'Using {pad_token_id} as pad_token_id from AA tokenizer')
 
     molecule_gt_json = {}
+    molecule_input_metadata = {}
     ppxt_avg = []
 
     print(f'Generating for {len(smiles_list)} inputs')
@@ -211,6 +221,7 @@ if __name__ == '__main__':
                 fn.write(f">{idx}\n{seq}\n")
         # Register per-FASTA metadata (SMILES, perplexities, optional GT)
         molecule_gt_json[filename] = {'fasta_perplexity': ppxt_samples, 'Smiles': smiles, 'Perplexity_greedy': np.exp(nll)}
+        molecule_input_metadata[filename] = smiles
         if gt_dict is not None and smiles in gt_dict:
             molecule_gt_json[filename]['GT'] = [gt['Sequence'] for gt in gt_dict[smiles]]
         ppxt_avg.append(np.exp(nll))
@@ -226,6 +237,11 @@ if __name__ == '__main__':
     with open(inference_metadata_path, 'w') as f:
         json.dump(molecule_gt_json, f, indent=4)
     print(f"Metadata written to {inference_metadata_path}")
+
+    molecule_metadata_path = os.path.join(args.output_folder, 'molecule_input_metadata.json')
+    with open(molecule_metadata_path, 'w') as f:
+        json.dump(molecule_input_metadata, f, indent=4)
+    print(f"Molecule metadata written to {molecule_metadata_path}")
 
     run_metadata_path = os.path.join(args.output_folder, 'generation_parameters.json')
     run_metadata = {
