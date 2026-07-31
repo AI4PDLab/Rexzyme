@@ -1,8 +1,8 @@
-# Mol2Pro
+# Rexzyme
 ### _Code for the paper:_ 
-### [Generalise or Memorise? Benchmarking Ligand-Conditioned Protein Generation from Sequence-Only Data](https://doi.org/10.64898/2026.02.06.704305)
+### [Rexzyme: A Translation Machine for the design of enzymes tailored to specific reactions] _To Do: Link_
 
-Generate protein binder sequences from ligand SMILES using an encoder–decoder Protein Language Model.
+Generate enzyme sequences from reaction SMILES using an encoder–decoder Protein Language Model.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ Generate protein binder sequences from ligand SMILES using an encoder–decoder 
 
 ## Pretrained Models
 
-The pretrained models presented in the paper are available on [Hugging Face](https://huggingface.co/collections/AI4PD/mol2pro-family)
+The pretrained models presented in the paper are available on [Hugging Face](https://huggingface.co/AI4PD/REXzyme)
 
 ## Running inference
 
@@ -21,10 +21,10 @@ The pretrained models presented in the paper are available on [Hugging Face](htt
 
 ```bash
 python src/inference.py \
-  --model_path AI4PD/Mol2Pro-base \
-  --tokenizer_aa AI4PD/Mol2Pro-tokenizer \
-  --tokenizer_mol AI4PD/Mol2Pro-tokenizer \
-  --input_file data/smiles.txt \
+  --model_path AI4PD/REXzyme/checkpoint-90000 \
+  --tokenizer_aa AI4PD/REXzyme/tokenize_aa \
+  --tokenizer_mol AI4PD/REXzyme/tokenize_smiles \
+  --input_file data/guide_val_com.txt \
   --output_folder fastas \
   --top_k 15 \
   --seed 0
@@ -37,11 +37,4 @@ Outputs: one FASTA per input SMILES (25 sequences per molecule by default), plus
 
 If you find this work useful, please cite:
 
-```bibtex
-@article{VicenteSola2026Generalise,
-  title   = {Generalise or Memorise? Benchmarking Ligand-Conditioned Protein Generation from Sequence-Only Data},
-  author  = {Vicente-Sola, Alex and Dornfeld, Lars and Coines, Joan and Ferruz, Noelia},
-  journal = {bioRxiv},
-  year    = {2026},
-  doi     = {10.64898/2026.02.06.704305},
-}
+_To Do_

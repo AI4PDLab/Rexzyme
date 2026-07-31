@@ -7,7 +7,7 @@ set -euo pipefail
 #   TOKENIZER_AA, TOKENIZER_MOL, MODEL_NAME_OR_PATH
 #
 # Optional env:
-#   DATASET             Hub dataset id (default: contributor-anonymous/Mol2Pro-Binder-Dataset)
+#   DATASET             Hub dataset id (default: AI4PD/TODO)
 #   LOCAL_DATASET_PATH  If set, passed as --dataset instead of DATASET (local JSON file or split dir)
 #   TOKENIZED_DIR       Output of tokenize.py / input layout for train.py (default: ./example_t5/tokenized)
 #   FORCE_TOKENIZE      If 1, always rerun tokenize.py
@@ -18,7 +18,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-DATASET="${DATASET:-contributor-anonymous/Mol2Pro-Binder-Dataset}"
+DATASET="${DATASET:-AI4PD/TODO}"
 TOKENIZED_DIR="${TOKENIZED_DIR:-${SCRIPT_DIR}/tokenized}"
 FORCE_TOKENIZE="${FORCE_TOKENIZE:-0}"
 OUTPUT_DIR="${OUTPUT_DIR:-${SCRIPT_DIR}/training_output}"

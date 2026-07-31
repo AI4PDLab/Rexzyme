@@ -1,6 +1,6 @@
-# T5 example (`example_t5`)
+# Training example
 
-End-to-end placeholder flow: **tokenize** curated Mol2Pro JSON → **train** a seq2seq model → **infer** with [`inference_t5.py`](inference_t5.py) → **evaluate** with scripts under [`../eval/`](../eval/) (those scripts expect FASTAs + metadata already on disk).
+End-to-end placeholder flow: **tokenize** curated Rexzyme JSON → **train** a seq2seq model → **infer** with [`inference.py`](inference.py) → **evaluate** with scripts under [`../eval/`](../eval/) (those scripts expect FASTAs + metadata already on disk).
 
 ## Dataset loading (Hub-first, local fallback)
 
@@ -8,7 +8,7 @@ End-to-end placeholder flow: **tokenize** curated Mol2Pro JSON → **train** a s
 
 | Source | `--dataset` value | Behavior |
 |--------|-------------------|----------|
-| **Hub (default)** | `contributor-anonymous/Mol2Pro-Binder-Dataset` | `load_dataset(dataset_id, …)` |
+| **Hub (default)** | `AI4PD/TODO` | `load_dataset(dataset_id, …)` |
 | **Local file or folder** | Path that exists on disk | `load_dataset("json", data_files=…)` |
 
 - If `--dataset` is a **file** (`.json` / `.jsonl`), that file is loaded as JSON lines or array JSON.
@@ -33,10 +33,10 @@ Required environment variables:
 
 Optional:
 
-- `DATASET` — Hub id (default `contributor-anonymous/Mol2Pro-Binder-Dataset`).
+- `DATASET` — Hub id (default `AI4PD/TODO`).
 - `LOCAL_DATASET_PATH` — if set, used instead of `DATASET` for `--dataset` (local path).
-- `TOKENIZED_DIR` — default `./example_t5/tokenized`.
-- `OUTPUT_DIR` — training output; default `./example_t5/training_output`.
+- `TOKENIZED_DIR` — default `./data/tokenized`.
+- `OUTPUT_DIR` — training output; default `./results/training_output`.
 - `HF_REVISION`, `TRUST_REMOTE_CODE`, `FORCE_TOKENIZE`, `TRAIN_EXTRA_ARGS`.
 
 Example (Git Bash):
@@ -45,14 +45,14 @@ Example (Git Bash):
 export TOKENIZER_AA=/path/to/aa_tokenizer
 export TOKENIZER_MOL=/path/to/mol_tokenizer
 export MODEL_NAME_OR_PATH=google/t5-small
-bash example_t5/run_train.sh
+bash scripts/run_train.sh
 ```
 
 Local splits instead of Hub:
 
 ```bash
 export LOCAL_DATASET_PATH=/path/to/splits_dir   # contains train.jsonl, val.jsonl, ...
-bash example_t5/run_train.sh
+bash scripts/run_train.sh
 ```
 
 ## Scripts overview
@@ -61,10 +61,10 @@ bash example_t5/run_train.sh
 |---------------|------|
 | [`tokenize.py`](tokenize.py) | Hub-first / local JSON → tokenized `DatasetDict` on disk. |
 | [`train.py`](train.py) | Minimal `Seq2SeqTrainer` on that `DatasetDict` (extend as needed). |
-| [`inference_t5.py`](inference_t5.py) | Generates FASTAs + `molecule_*_metadata.json` for eval. |
+| [`inference.py`](inference.py) | Generates FASTAs + `molecule_*_metadata.json` for eval. |
 | [`eval_scripts/run_inference_and_eval.sh`](eval_scripts/run_inference_and_eval.sh) | Inference + MMseqs / join / optional pLDDT. |
 
 ## Notes
 
-- **Tokenizers**: Use Hugging Face `AutoTokenizer` checkpoints only (local dirs or Hub ids). `tokenize.py` and `inference_t5.py` load them via `transformers.AutoTokenizer.from_pretrained`.
+- **Tokenizers**: Use Hugging Face `AutoTokenizer` checkpoints only (local dirs or Hub ids). `tokenize.py` and `inference.py` load them via `transformers.AutoTokenizer.from_pretrained`.
 - **`train.py`** loads `AutoTokenizer` from the `tokenizer_aa` path recorded in `tokenize_metadata.json`.

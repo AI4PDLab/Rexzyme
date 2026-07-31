@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tokenize Mol2Pro JSON records for seq2seq training (T5 example).
+"""Tokenize Rexzyme JSON records for seq2seq training (T5 example).
 
 Loads data **Hub-first** via ``datasets.load_dataset`` when ``--dataset`` is not
 an existing local path; otherwise loads JSON/JSONL with the same ``load_dataset``
@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from datasets import Dataset, DatasetDict, load_dataset
 from transformers import AutoTokenizer
 
-DEFAULT_HUB_DATASET = "contributor-anonymous/Mol2Pro-Binder-Dataset"
+DEFAULT_HUB_DATASET = "AI4PD/TODO"
 
 
 def get_unknown_token_id(tokenizer) -> Optional[int]:
@@ -234,7 +234,7 @@ def strip_stat_columns(ds, columns: List[str]):
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Tokenize Mol2Pro-style dataset for seq2seq training.",
+        description="Tokenize Rexzyme-style dataset for seq2seq training.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
