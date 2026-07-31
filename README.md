@@ -7,7 +7,9 @@ Generate enzyme sequences from reaction SMILES using an encoder–decoder Protei
 ## Requirements
 
 - Python 3.10+
-- `torch`, `transformers`, `numpy`
+- Core Python packages are listed in [`requirements.txt`](requirements.txt): `torch`, `transformers`, `datasets`, `numpy`.
+- Evaluation extras are listed in [`requirements-eval.txt`](requirements-eval.txt): `pandas`, `matplotlib`, `biopython`.
+- MMseqs is an external system dependency for the evaluation scripts. It is not installed by pip; eval scripts expect `mmseqs` on `PATH` or an explicit MMseqs executable path where the script exposes one.
 
 ## Pretrained Models
 
