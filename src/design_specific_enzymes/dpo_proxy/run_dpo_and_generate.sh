@@ -15,6 +15,8 @@ PROXY_COLUMN="${PROXY_COLUMN:-Kcat/Km}"
 REACTION="${REACTION:-SMILES_REACTION_HERE}"
 MODE="${MODE:-ranked}"              # ranked | weighted
 OBJECTIVE="${OBJECTIVE:-maximize}"  # maximize | minimize
+# Default matches the input expected by filtering_pipeline/scripts/run_*.sh
+FASTA_OUTPUT="${FASTA_OUTPUT:-results/dpo_generated.fasta}"
 
 # Hyperparameters (matching original DPO_pLM.py CONFIG)
 BETA="${BETA:-0.1}"
@@ -30,7 +32,7 @@ TOP_K="${TOP_K:-18}"
 TOP_P="${TOP_P:-1.0}"
 REPETITION_PENALTY="${REPETITION_PENALTY:-1.1}"
 
-python design_specific_enzymes/dpo_proxy/dpo_optimize_and_generate.py \
+python src/design_specific_enzymes/dpo_proxy/dpo_optimize_and_generate.py \
   --model_path "${MODEL_PATH}" \
   --output_model_dir "${OUTPUT_MODEL_DIR}" \
   --tokenizer_aa "${TOKENIZER_AA}" \
@@ -48,7 +50,7 @@ python design_specific_enzymes/dpo_proxy/dpo_optimize_and_generate.py \
   --seed "${SEED}" \
   --generate_after_dpo \
   --generation_reaction "${REACTION}" \
-  --fasta_output "results/dpo_generated_${MODE}.fasta" \
+  --fasta_output "${FASTA_OUTPUT}" \
   --generation_rounds "${GENERATION_ROUNDS}" \
   --num_return_sequences "${NUM_RETURN_SEQUENCES}" \
   --top_k "${TOP_K}" \

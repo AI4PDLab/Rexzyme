@@ -15,31 +15,31 @@ RUN_PLIP="${RUN_PLIP:-1}"
 RUN_ROSETTA="${RUN_ROSETTA:-1}"
 
 if [ "${RUN_PERPLEXITY}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_perplexity.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_perplexity.sh
 fi
 if [ "${RUN_CLEAN}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_clean.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_clean.sh
 fi
 if [ "${RUN_ALPHAFOLD}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_alphafold.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_alphafold.sh
 fi
 if [ "${RUN_MMSEQS}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_mmseqs.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_mmseqs.sh
 fi
 if [ "${RUN_FOLDSEEK}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_foldseek.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_foldseek.sh
 fi
 if [ "${RUN_ESM1V}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_esm1v.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_esm1v.sh
 fi
 if [ "${RUN_PROTEINMPNN}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_proteinmpnn.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_proteinmpnn.sh
 fi
 if [ "${RUN_PLIP}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_plip.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_plip.sh
 fi
 if [ "${RUN_ROSETTA}" = "1" ]; then
-  bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_rosetta.sh
+  bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_rosetta.sh
 fi
 
 echo "Metric run stage completed."

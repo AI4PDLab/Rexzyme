@@ -34,7 +34,13 @@ def main() -> None:
 
     df = df.copy()
     df["_score"] = pd.to_numeric(df[args.column], errors="coerce")
+    n_input = len(df)
     df = df[df["_score"].notna()]
+    if n_input and df.empty:
+        raise ValueError(
+            f"Column {args.column!r} has no numeric values in {args.input_csv}; "
+            "was the metric computed and merged into this table?"
+        )
     ascending = args.direction == "lower_is_better"
     out = df.sort_values("_score", ascending=ascending).head(args.top_n).drop(columns=["_score"])
 

@@ -137,7 +137,7 @@ collects all metric outputs.
 ### 1) Initialize the table from FASTA
 
 ```bash
-python design_specific_enzymes/filtering_pipeline/scripts/build_candidates_from_fasta.py \
+python src/design_specific_enzymes/filtering_pipeline/scripts/build_candidates_from_fasta.py \
   --input_fasta results/dpo_generated.fasta \
   --output_csv results/filtering/candidates_base.csv \
   --target_ec 1.17.1.9
@@ -159,7 +159,7 @@ For each external metric tool, we recommend exporting a CSV keyed by
 Merge helper:
 
 ```bash
-python design_specific_enzymes/filtering_pipeline/scripts/merge_metric_table.py \
+python src/design_specific_enzymes/filtering_pipeline/scripts/merge_metric_table.py \
   --base_csv results/filtering/candidates_base.csv \
   --metric_csv results/filtering/clean_scores.csv \
   --output_csv results/filtering/candidates_with_clean.csv \
@@ -219,21 +219,21 @@ the candidate table.
 To run all metric stages before filtering:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_all_metrics.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_all_metrics.sh
 ```
 
 To run one metric stage at a time:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_perplexity.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_clean.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_alphafold.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_mmseqs.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_foldseek.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_esm1v.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_proteinmpnn.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_plip.sh
-bash design_specific_enzymes/filtering_pipeline/scripts/run_metric_rosetta.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_perplexity.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_clean.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_alphafold.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_mmseqs.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_foldseek.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_esm1v.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_proteinmpnn.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_plip.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_metric_rosetta.sh
 ```
 
 Each script is a template around the corresponding external tool command. We can
@@ -244,58 +244,66 @@ counts after every stage.
 
 ### Step-by-step mode
 
-1) Deduplicate FASTA sequences before scoring:
+1) Deduplicate FASTA sequences before scoring. This reads
+`results/dpo_generated.fasta` (the default output of the DPO launcher) and
+writes both `results/step01_deduplicated.fasta` and the candidate table
+`results/step01_deduplicated.csv` used by the next steps:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_deduplicate.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_deduplicate.sh
 ```
+
+The perplexity column is read from the `ppl_<value>` tag in the FASTA headers
+written by `dpo_optimize_and_generate.py`. FASTA files from `src/inference.py`
+have no such tag; in that case the perplexity filter stops with an error until
+perplexity values are merged into the table (`merge_metric_table.py`).
 
 2) Keep the best fraction by perplexity (default 25%):
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_perplexity_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_perplexity_filter.sh
 ```
 
 3) Keep CLEAN EC matches to the target EC:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_clean_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_clean_filter.sh
 ```
 
 4) Apply AlphaFold-derived pLDDT and ipTM filters:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_alphafold_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_alphafold_filter.sh
 ```
 
 5) Remove natural-sequence identity hits at 100%:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_mmseqs_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_mmseqs_filter.sh
 ```
 
 6) Keep top Foldseek hits by TM-score:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_foldseek_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_foldseek_filter.sh
 ```
 
 7) Keep top ESM1v candidates:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_esm1v_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_esm1v_filter.sh
 ```
 
 8) Keep top ProteinMPNN candidates:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_proteinmpnn_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_proteinmpnn_filter.sh
 ```
 
 9) After manual PLIP/MSA review, apply Rosetta gates:
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_rosetta_filter.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_rosetta_filter.sh
 ```
 
 ### Full-chain mode
@@ -305,7 +313,7 @@ Use this when a single CSV already contains all required score columns
 `iptm`, `tmscore`, `esm1v_score`, `proteinmpnn_score`, Rosetta metrics):
 
 ```bash
-bash design_specific_enzymes/filtering_pipeline/scripts/run_filtering_pipeline.sh
+bash src/design_specific_enzymes/filtering_pipeline/scripts/run_filtering_pipeline.sh
 ```
 
 ### When to use low-level Python filters directly
@@ -317,7 +325,7 @@ alternative top-k cutoffs).
 Example: custom pLDDT threshold (`>= 80`):
 
 ```bash
-python design_specific_enzymes/filtering_pipeline/scripts/filter_by_threshold.py \
+python src/design_specific_enzymes/filtering_pipeline/scripts/filter_by_threshold.py \
   --input_csv results/step03_clean_ec_match.csv \
   --output_csv results/step04_plddt_gt80.csv \
   --column plddt \
@@ -328,7 +336,7 @@ python design_specific_enzymes/filtering_pipeline/scripts/filter_by_threshold.py
 Example: custom top 10% by ESM1v:
 
 ```bash
-python design_specific_enzymes/filtering_pipeline/scripts/filter_top_fraction.py \
+python src/design_specific_enzymes/filtering_pipeline/scripts/filter_top_fraction.py \
   --input_csv results/step07_foldseek_top1000.csv \
   --output_csv results/step08_esm1v_top10pct.csv \
   --column esm1v_score \

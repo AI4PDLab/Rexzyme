@@ -7,7 +7,7 @@ set -euo pipefail
 INPUT_CSV="${INPUT_CSV:-results/step10_plip_msa_checked.csv}"
 OUTPUT_CSV="${OUTPUT_CSV:-results/step11_rosetta_final.csv}"
 
-python design_specific_enzymes/filtering_pipeline/scripts/filter_rosetta_gates.py \
+python src/design_specific_enzymes/filtering_pipeline/scripts/filter_rosetta_gates.py \
   --input_csv "${INPUT_CSV}" \
   --output_csv "${OUTPUT_CSV}" \
   --rosetta_score_column rosetta_score \

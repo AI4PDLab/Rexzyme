@@ -40,7 +40,7 @@ Required columns:
 ## Typical usage
 
 ```bash
-python design_specific_enzymes/dpo_proxy/dpo_optimize_and_generate.py \
+python src/design_specific_enzymes/dpo_proxy/dpo_optimize_and_generate.py \
   --model_path /path/to/finetuned_model \
   --output_model_dir results/dpo_model \
   --tokenizer_aa AI4PD/REXzyme/tokenizer_aa \
@@ -64,7 +64,7 @@ ACTIVITY_FILE=/path/to/activity.csv \
 REACTION="SMILES_REACTION_HERE" \
 PROXY_COLUMN="Kcat/Km" \
 MODE=ranked \
-bash design_specific_enzymes/dpo_proxy/run_dpo_and_generate.sh
+bash src/design_specific_enzymes/dpo_proxy/run_dpo_and_generate.sh
 ```
 
 ## Default hyperparameters

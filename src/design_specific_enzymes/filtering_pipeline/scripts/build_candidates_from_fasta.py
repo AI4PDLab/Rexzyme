@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import re
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -75,6 +76,14 @@ def main() -> None:
         )
 
     out = pd.DataFrame(rows)
+    if len(out) and out["perplexity"].isna().all():
+        print(
+            "WARNING: no 'ppl_<value>' found in any FASTA header, so the perplexity "
+            "column is empty and the perplexity filter will fail. Use the FASTA written "
+            "by dpo_optimize_and_generate.py, or add perplexity values to the table "
+            "(e.g. with merge_metric_table.py).",
+            file=sys.stderr,
+        )
     Path(args.output_csv).parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output_csv, index=False)
     print(f"Wrote {len(out)} candidates -> {args.output_csv}")

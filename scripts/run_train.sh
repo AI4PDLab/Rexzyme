@@ -19,7 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DATASET="${DATASET:-AI4PD/TODO}"
-TOKENIZED_DIR="${TOKENIZED_DIR:data/tokenized}"
+TOKENIZED_DIR="${TOKENIZED_DIR:-data/tokenized}"
 FORCE_TOKENIZE="${FORCE_TOKENIZE:-0}"
 OUTPUT_DIR="${OUTPUT_DIR:-results/training_output}"
 
@@ -43,7 +43,7 @@ fi
 if [[ "${RUN_TOKENIZE}" == "1" ]]; then
   mkdir -p "${TOKENIZED_DIR}"
   TOKENIZE_CMD=(
-    python "src/tokenize.py"
+    python -m src.tokenize
     --dataset "${DATASET_ARG}"
     --tokenizer_aa "${TOKENIZER_AA}"
     --tokenizer_mol "${TOKENIZER_MOL}"
@@ -61,7 +61,7 @@ else
 fi
 
 TRAIN_CMD=(
-  python "src/train.py"
+  python -m src.train
   --tokenized_dir "${TOKENIZED_DIR}"
   --model_name_or_path "${MODEL_NAME_OR_PATH}"
   --output_dir "${OUTPUT_DIR}"
