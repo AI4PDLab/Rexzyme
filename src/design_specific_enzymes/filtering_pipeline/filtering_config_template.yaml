@@ -1,0 +1,70 @@
+project_name: "fdh_design_round_01"
+
+target:
+  enzyme_family: "formate_dehydrogenase"
+  target_ec: "1.17.1.9"
+  reaction_smiles: "NC(=O)C1=CN(...)C=CC1.O=C=O>>NC(=O)c1ccc[n+](...)c1.O=C[O-]"
+  reference_structure_id: "CtFDH"
+  oligomer_state: "dimer" # monomer|dimer|trimer|...
+
+inputs:
+  generated_fasta: "results/generated.fasta"
+  natural_sequences_fasta: "data/natural_fdh_sequences.fasta"
+  metadata_table_csv: "results/generated_metadata.csv"
+
+filters:
+  deduplicate: true
+
+  perplexity:
+    enabled: true
+    keep_fraction: 0.25
+    direction: "lower_is_better"
+
+  clean_ec:
+    enabled: true
+    target_ec: "1.17.1.9"
+    match_level: 4
+
+  alphafold:
+    enabled: true
+    mean_plddt_min: 75.0
+    iptm_keep_fraction: 0.25
+    oligomer_state: "dimer"
+
+  mmseqs:
+    enabled: true
+    max_identity_to_natural: 0.9999
+
+  foldseek:
+    enabled: true
+    keep_top_n: 1000
+    metric: "tmscore"
+    direction: "higher_is_better"
+
+  esm1v:
+    enabled: true
+    keep_top_n: 500
+    direction: "higher_is_better"
+
+  proteinmpnn:
+    enabled: true
+    keep_top_n: 200
+    direction: "higher_is_better"
+
+  plip_msa:
+    enabled: true
+    require_key_interactions: true
+    require_catalytic_residue_conservation: true
+
+  rosetta:
+    enabled: true
+    score_direction: "lower_is_better"
+    relative_hydrophobic_sasa_max: 3.0
+    net_charge_must_be_nonzero: true
+    average_sap_max: 0.5
+    hydrophobic_sasa_to_ideal_surface_max_ratio: 1.7
+
+outputs:
+  folder: "results/filtering"
+  write_stage_tables: true
+  final_csv: "step11_rosetta_final.csv"

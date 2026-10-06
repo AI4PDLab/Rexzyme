@@ -1,5 +1,10 @@
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("datasets")
+pytest.importorskip("transformers", exc_type=ImportError)
+
 from src import tokenize
 
 

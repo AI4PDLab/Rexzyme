@@ -1,3 +1,7 @@
+import pytest
+
+pytest.importorskip("numpy")
+
 from eval.gt_acc import gt_mmseq_interpretation_balanced as balanced
 from eval.gt_acc import gt_permutation_mmseq_eval as permutation
 
@@ -60,8 +64,8 @@ def test_permutation_pairwise_parser_keeps_best_effective_identity(tmp_path) -> 
     parsed = permutation.parse_pairwise_best_hits(
         str(mmseqs_file),
         query_records=[
-            ("output_topk15_file-0.fasta", "query_smiles", "0", 0),
-            ("output_topk15_file-0.fasta", "query_smiles", "1", 1),
+            ("output_topk15_file_0.fasta", "query_smiles", "0", 0),
+            ("output_topk15_file_0.fasta", "query_smiles", "1", 1),
         ],
         unique_targets=["GT_A", "GT_B"],
         mol_to_gt={"target_smiles": {"GT_A", "GT_B"}},
