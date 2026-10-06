@@ -10,12 +10,12 @@ Rexzyme is an encoder–decoder protein language model that takes a reaction SMI
 |------|----------|
 | [`src/`](src/) | Tokenize, train, and generate sequences |
 | [`scripts/`](scripts/) | Wrappers for paper inference and example training |
-| [`design_specific_enzymes/`](design_specific_enzymes/) | Practical workflow for task-specific enzyme design (fine-tuning + proxy-based DPO) |
+| [`src/design_specific_enzymes/`](src/design_specific_enzymes/) | Practical workflow for task-specific enzyme design (fine-tuning + proxy-based DPO) |
 | [`data/`](data/) | Paper reaction lists, generated FASTAs, Rhea/EC tables |
 | [`eval/`](eval/) | Analyses used in the paper |
 | [`tests/`](tests/) | Unit tests for public script contracts |
 
-Detailed notes: [`src/README.md`](src/README.md), [`scripts/README.md`](scripts/README.md), [`design_specific_enzymes/README.md`](design_specific_enzymes/README.md), [`data/README.md`](data/README.md), [`eval/README.md`](eval/README.md), [`tests/README.md`](tests/README.md).
+Detailed notes: [`src/README.md`](src/README.md), [`scripts/README.md`](scripts/README.md), [`src/design_specific_enzymes/README.md`](src/design_specific_enzymes/README.md), [`data/README.md`](data/README.md), [`eval/README.md`](eval/README.md), [`tests/README.md`](tests/README.md).
 
 ## Requirements
 
