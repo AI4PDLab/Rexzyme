@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Launcher for weighted/ranked DPO + generation.
+# Launcher for weighted DPO + generation.
 # Defaults match the original DPO_pLM.py + seq_gen.py hyperparameters.
 # Adjust MODEL_PATH, ACTIVITY_FILE, REACTION, PROXY_COLUMN, and MODE for your project.
 
@@ -13,8 +13,12 @@ ACTIVITY_FILE="${ACTIVITY_FILE:-/path/to/activity.csv}"
 SEQUENCE_COLUMN="${SEQUENCE_COLUMN:-Seq}"
 PROXY_COLUMN="${PROXY_COLUMN:-Kcat/Km}"
 REACTION="${REACTION:-SMILES_REACTION_HERE}"
-MODE="${MODE:-ranked}"              # ranked | weighted
+MODE="${MODE:-weighted}"            # weighted is the only supported mode
 OBJECTIVE="${OBJECTIVE:-maximize}"  # maximize | minimize
+if [ "${MODE}" != "weighted" ]; then
+  echo "ERROR: MODE=${MODE} is not supported; 'weighted' is the only DPO mode ('ranked' was removed)." >&2
+  exit 1
+fi
 # Default matches the input expected by filtering_pipeline/scripts/run_*.sh
 FASTA_OUTPUT="${FASTA_OUTPUT:-results/dpo_generated.fasta}"
 

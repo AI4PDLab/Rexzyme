@@ -2,6 +2,8 @@
 """DPO optimization + sequence generation for Rexzyme encoder-decoder models.
 
 Port of the original DPO_pLM.py + seq_gen.py pipeline to the current repo.
+Only the "weighted" objective is supported; the original "ranked" objective was
+removed because its loss did not depend on the proxy scores.
 
 Adaptations vs. the original scripts:
 - No "translation" prefix prepended to reaction SMILES (current model was not
@@ -13,8 +15,7 @@ Adaptations vs. the original scripts:
   which is the correct definition for an encoder-decoder model.
 
 Everything else matches the original logic exactly:
-- weighted mode: F.cross_entropy(beta * pi_ll, softmax(scores))
-- ranked mode:   F.mse_loss(beta * pi_ll, ones) after sorting by score
+- loss: F.cross_entropy(beta * pi_ll, softmax(scores))  ("weighted" mode)
 - Log-likelihood is computed per sequence using model.loss (averaged NLL).
 - The reference model is loaded but not used in the loss, matching the
   original DPO_pLM.py behaviour where ref_log_probs was set to None.
@@ -59,6 +60,17 @@ def load_tokenizer(path: str) -> AutoTokenizer:
 # CLI
 # ---------------------------------------------------------------------------
 
+def _mode(value: str) -> str:
+    if value == "weighted":
+        return value
+    if value == "ranked":
+        raise argparse.ArgumentTypeError(
+            "'ranked' mode was removed (its loss did not use the proxy scores); "
+            "'weighted' is the only mode."
+        )
+    raise argparse.ArgumentTypeError(f"invalid mode {value!r}; the only mode is 'weighted'.")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="DPO optimize and generate with Rexzyme (original DPO_pLM logic).",
@@ -79,8 +91,8 @@ def parse_args() -> argparse.Namespace:
                         help="Reaction SMILES used for all rows (if --reaction_column is not set).")
     parser.add_argument("--reaction_column", default=None,
                         help="Optional per-row reaction SMILES column.")
-    parser.add_argument("--mode", choices=["weighted", "ranked"], required=True,
-                        help="DPO objective mode.")
+    parser.add_argument("--mode", type=_mode, default="weighted",
+                        help="DPO objective mode (only 'weighted' is supported).")
     parser.add_argument("--objective", choices=["maximize", "minimize"], default="maximize",
                         help="Whether larger proxy values are better (maximize) or worse (minimize).")
 
@@ -228,19 +240,6 @@ def weighted_dpo_loss(pi_ll: torch.Tensor, scores: torch.Tensor, beta: float) ->
     return F.cross_entropy(pi_ratio, weights)
 
 
-def ranked_dpo_loss(pi_ll: torch.Tensor, scores: torch.Tensor, beta: float) -> torch.Tensor:
-    """Original ranked loss: sort by softmax score, then MSE(beta * pi_ll, ones).
-
-    Sorts sequences by their score weight (descending) and pushes all
-    log-likelihoods toward 1/beta via MSE. Reference model is not used.
-    """
-    weights = torch.softmax(scores, dim=0)
-    sorted_indices = torch.argsort(weights, descending=True)
-    pi_ll_sorted = pi_ll[sorted_indices]
-    pi_ratio = beta * pi_ll_sorted
-    return F.mse_loss(pi_ratio, torch.ones_like(pi_ratio))
-
-
 # ---------------------------------------------------------------------------
 # Training helpers
 # ---------------------------------------------------------------------------
@@ -263,10 +262,7 @@ def train_epoch(
             tokenizer_aa, tokenizer_mol, args.max_source_length, args.max_target_length,
         )
         scores = batch["scores"].to(device)
-        if args.mode == "weighted":
-            loss = weighted_dpo_loss(pi_ll, scores, args.beta)
-        else:
-            loss = ranked_dpo_loss(pi_ll, scores, args.beta)
+        loss = weighted_dpo_loss(pi_ll, scores, args.beta)
         loss.backward()
         optimizer.step()
         torch.cuda.empty_cache()
@@ -291,10 +287,7 @@ def eval_epoch(
                 tokenizer_aa, tokenizer_mol, args.max_source_length, args.max_target_length,
             )
             scores = batch["scores"].to(device)
-            if args.mode == "weighted":
-                loss = weighted_dpo_loss(pi_ll, scores, args.beta)
-            else:
-                loss = ranked_dpo_loss(pi_ll, scores, args.beta)
+            loss = weighted_dpo_loss(pi_ll, scores, args.beta)
             losses.append(float(loss.item()))
     return float(sum(losses) / max(len(losses), 1))
 

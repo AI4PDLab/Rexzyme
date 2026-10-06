@@ -4,20 +4,19 @@
 `seq_gen.py` pipeline to the current Rexzyme repository structure.
 
 It works with encoder-decoder checkpoints (finetuned Rexzyme or compatible
-seq2seq models) and lets you optimize with:
-
-- `--mode weighted`
-- `--mode ranked`
-
-using any numeric proxy column from a table (for example `Kcat`, `Km`,
+seq2seq models) and optimizes them with the weighted objective
+(`--mode weighted`, the default and only mode), using any numeric proxy column from a table (for example `Kcat`, `Km`,
 `Kcat/Km`, `plddt`, `tmscore`, or any custom score you supply).
 
-## Loss functions (matching original DPO_pLM.py)
+## Loss function (matching original DPO_pLM.py)
 
 | Mode | Loss |
 |------|------|
 | `weighted` | `F.cross_entropy(β · π_ll, softmax(scores))` |
-| `ranked` | Sort by score weight, then `F.mse_loss(β · π_ll, ones)` |
+
+The original `ranked` mode was removed: its loss (`F.mse_loss(β · π_ll, ones)`
+after sorting) is the same for any scores, so the proxy had no effect.
+`--mode ranked` and `MODE=ranked` now stop with an error.
 
 Log-likelihood is computed per sequence using `model.loss` (averaged NLL
 negated), iterating one sequence at a time — same as the original script.
@@ -49,11 +48,10 @@ python src/design_specific_enzymes/dpo_proxy/dpo_optimize_and_generate.py \
   --sequence_column Seq \
   --proxy_column "Kcat/Km" \
   --reaction "SMILES_REACTION_HERE" \
-  --mode ranked \
   --objective maximize \
   --generate_after_dpo \
   --generation_reaction "SMILES_REACTION_HERE" \
-  --fasta_output results/fdh_dpo_ranked.fasta
+  --fasta_output results/fdh_dpo_weighted.fasta
 ```
 
 Or use the launcher script (all parameters are overridable via env vars):
@@ -63,7 +61,6 @@ MODEL_PATH=/path/to/finetuned_model \
 ACTIVITY_FILE=/path/to/activity.csv \
 REACTION="SMILES_REACTION_HERE" \
 PROXY_COLUMN="Kcat/Km" \
-MODE=ranked \
 bash src/design_specific_enzymes/dpo_proxy/run_dpo_and_generate.sh
 ```
 

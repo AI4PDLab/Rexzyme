@@ -610,22 +610,23 @@ def tiny_model(tmp_path_factory) -> Path:
     return path
 
 
-def _dpo_args(model: Path, out_dir: Path, mode: str, fasta: Path, extra=()):
+def _dpo_args(model: Path, out_dir: Path, mode: str | None, fasta: Path, extra=()):
     return [
         sys.executable, DPO / "dpo_optimize_and_generate.py",
         "--model_path", model, "--output_model_dir", out_dir,
         "--tokenizer_aa", f"{HUB_REPO}/tokenizer_aa",  # 3-part Hub id, as in the launcher
         "--tokenizer_mol", f"{HUB_REPO}/tokenizer_smiles",
         "--activity_file", DPO / "example_proxy_input.csv",
-        "--proxy_column", "Kcat/Km", "--reaction", "CC(=O)O>>CCO", "--mode", mode,
+        "--proxy_column", "Kcat/Km", "--reaction", "CC(=O)O>>CCO",
+        *(["--mode", mode] if mode else []),
         "--num_epochs", "1", "--batch_size", "2", "--max_target_length", "64",
         "--generate_after_dpo", "--generation_rounds", "1", "--num_return_sequences", "4",
         "--generation_max_length", "40", "--fasta_output", fasta, *extra,
     ]
 
 
-@pytest.mark.parametrize("mode", ["ranked", "weighted"])
-def test_dpo_output_feeds_the_filtering_pipeline(work: Path, tiny_model: Path, mode: str) -> None:
+@pytest.mark.parametrize("mode", [None, "weighted"], ids=["default-mode", "explicit-weighted"])
+def test_dpo_output_feeds_the_filtering_pipeline(work: Path, tiny_model: Path, mode) -> None:
     fasta = work / "results" / "dpo_generated.fasta"
     result = run(_dpo_args(tiny_model, work / "dpo_model", mode, fasta), cwd=work)
     assert result.returncode == 0, result.stderr[-3000:]
@@ -725,3 +726,102 @@ def test_inference_cli_accepts_every_option_the_wrapper_passes() -> None:
     source = (ROOT / "src" / "inference.py").read_text(encoding="utf-8")
     accepted = set(re.findall(r"add_argument\(\s*['\"](--[a-z_]+)", source))
     assert passed and passed <= accepted, passed - accepted
+
+
+# --------------------------------------------------------------------------- DPO: weighted only
+
+
+def _load_dpo_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("dpo_under_test", DPO / "dpo_optimize_and_generate.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_weighted_loss_is_unchanged() -> None:
+    import torch
+    import torch.nn.functional as F
+
+    dpo = _load_dpo_module()
+    # hand-computed: equal scores -> uniform targets, CE([-1,-2] softmaxed) = 0.8133
+    value = dpo.weighted_dpo_loss(torch.tensor([-1.0, -2.0]), torch.tensor([0.0, 0.0]), beta=1.0)
+    assert value.item() == pytest.approx(0.81326, abs=1e-4)
+
+    generator = torch.Generator().manual_seed(0)
+    for beta in (0.1, 1.0):
+        ll = -torch.rand(8, generator=generator) * 3
+        scores = torch.randn(8, generator=generator) * 2
+        expected = F.cross_entropy(beta * ll, torch.softmax(scores, dim=0))  # original definition
+        assert dpo.weighted_dpo_loss(ll, scores, beta).item() == pytest.approx(expected.item(), abs=1e-7)
+
+
+def test_weighted_loss_depends_on_the_proxy_scores() -> None:
+    import torch
+
+    dpo = _load_dpo_module()
+    ll = torch.tensor([-1.0, -2.0, -3.0, -0.5])
+    a = dpo.weighted_dpo_loss(ll, torch.tensor([1.0, 0.0, -1.0, 2.0]), beta=0.5)
+    b = dpo.weighted_dpo_loss(ll, torch.tensor([-1.0, 0.0, 1.0, -2.0]), beta=0.5)
+    assert a.item() != pytest.approx(b.item(), abs=1e-4)
+
+
+def test_ranked_loss_is_gone() -> None:
+    assert not hasattr(_load_dpo_module(), "ranked_dpo_loss")
+
+
+def _dpo_cli_args(*mode_args):
+    return [
+        sys.executable, DPO / "dpo_optimize_and_generate.py",
+        "--model_path", "unused", "--output_model_dir", "unused",
+        "--tokenizer_aa", "unused", "--tokenizer_mol", "unused",
+        "--activity_file", "unused.csv", "--proxy_column", "x", *mode_args,
+    ]
+
+
+def test_dpo_cli_rejects_ranked_with_a_clear_message(work: Path) -> None:
+    result = run(_dpo_cli_args("--mode", "ranked"), cwd=work)
+    assert result.returncode == 2
+    assert "'ranked' mode was removed" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_dpo_cli_rejects_unknown_modes(work: Path) -> None:
+    result = run(_dpo_cli_args("--mode", "banana"), cwd=work)
+    assert result.returncode == 2
+    assert "only mode is 'weighted'" in result.stderr
+
+
+def test_dpo_cli_help_documents_only_weighted(work: Path) -> None:
+    result = run([sys.executable, DPO / "dpo_optimize_and_generate.py", "--help"], cwd=work)
+    assert result.returncode == 0
+    assert "weighted" in result.stdout
+    assert "ranked" not in result.stdout
+
+
+def test_dpo_launcher_defaults_to_weighted() -> None:
+    assert _default(DPO / "run_dpo_and_generate.sh", "MODE") == "weighted"
+
+
+@pytest.mark.parametrize("mode", ["ranked", "banana"])
+def test_dpo_launcher_rejects_other_modes_before_doing_any_work(work: Path, mode: str) -> None:
+    result = run(["bash", DPO / "run_dpo_and_generate.sh"], cwd=work, env={"MODE": mode})
+    assert result.returncode == 1
+    assert "'weighted' is the only DPO mode" in result.stderr
+    assert not (work / "results").exists()
+
+
+def test_ranked_is_only_mentioned_where_its_removal_is_explained() -> None:
+    allowed = {
+        DPO / "dpo_optimize_and_generate.py",
+        DPO / "run_dpo_and_generate.sh",
+        DPO / "README.md",
+    }
+    offenders = []
+    for root in (ROOT / "src", ROOT / "scripts"):
+        for path in root.rglob("*"):
+            if path.suffix in {".py", ".sh", ".md", ".yaml"} and path not in allowed:
+                if "ranked" in path.read_text(encoding="utf-8", errors="ignore").lower():
+                    offenders.append(str(path.relative_to(ROOT)))
+    assert not offenders, offenders

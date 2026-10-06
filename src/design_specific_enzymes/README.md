@@ -109,7 +109,7 @@ python src/train.py \
 
 - Part IV (broader reinforcement learning): to be added
 
-## Part II - DPO by custom proxy (ranked or weighted)
+## Part II - DPO by custom proxy (weighted)
 
 Use [`dpo_proxy/`](dpo_proxy/) to optimize a finetuned encoder-decoder model
 with preference-style updates and then generate sequences.
@@ -120,7 +120,7 @@ Main script:
 
 It supports:
 
-- `--mode ranked` or `--mode weighted`
+- the weighted objective (`--mode weighted`, the default and only mode)
 - any user-defined numeric proxy column from a CSV/TSV/XLSX file
 - objective direction control (`--objective maximize|minimize`)
 
