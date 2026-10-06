@@ -285,8 +285,12 @@ def main():
                         help="Path to folder containing GT fastas and folder_names.json (output_folder_gt in gt_inference_mmseq)")
     parser.add_argument('--molecule_metadata_file', type=str,
                         help="Path to molecule_input_metadata.json (optional, will auto-find if not provided)")
+    parser.add_argument('--output-dir', '--output', dest='output_dir', type=str, default=None,
+                        help="Directory for stats_balanced.csv and other result files (default: --mmseqs_path)")
 
     args = parser.parse_args()
+    output_dir = args.output_dir or args.mmseqs_path
+    os.makedirs(output_dir, exist_ok=True)
 
     # Load metadata files
     if args.molecule_metadata_file:
@@ -457,7 +461,7 @@ def main():
     effective_id_mean     = float(np.mean(mean_eff_vector))
     effective_id_std      = float(np.std(mean_eff_vector))
 
-    output_file = f"{args.mmseqs_path}/stats_balanced.csv"
+    output_file = f"{output_dir}/stats_balanced.csv"
     df = pd.DataFrame({
         'Accuracy': [accuracy],
         'Mean Sequence Identity': [mean_identity],
@@ -472,17 +476,17 @@ def main():
     print("\nSummary statistics:")
     print(df.to_string(index=False))
 
-    detailed_output_file = f"{args.mmseqs_path}/detailed_results.json"
+    detailed_output_file = f"{output_dir}/detailed_results.json"
     with open(detailed_output_file, 'w') as f:
         json.dump(detailed_results_json, f, indent=2)
     print(f"Detailed results saved to {detailed_output_file}")
 
-    per_input_output_file = f"{args.mmseqs_path}/per_input_stats.pkl"
+    per_input_output_file = f"{output_dir}/per_input_stats.pkl"
     with open(per_input_output_file, 'wb') as f:
         pickle.dump(per_input_stats, f)
     print(f"Per-input stats saved to {per_input_output_file}")
 
-    all_matches_output_file = f"{args.mmseqs_path}/all_matches_results.json"
+    all_matches_output_file = f"{output_dir}/all_matches_results.json"
     with open(all_matches_output_file, 'w') as f:
         json.dump(all_matches_results_json, f, indent=2)
     print(f"All matches results saved to {all_matches_output_file}")

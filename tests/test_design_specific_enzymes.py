@@ -229,16 +229,10 @@ def test_run_train_wrapper_reports_missing_variables_cleanly(work: Path) -> None
     assert "TOKENIZER_AA" in result.stderr
 
 
-def test_readme_does_not_pass_hub_subfolder_ids_to_local_only_entrypoints() -> None:
+def test_readme_tokenize_command_works_with_hub_ids(work: Path, hub_tokenizers: Path) -> None:
+    """The fine-tuning README passes `AI4PD/REXzyme/<subfolder>` ids to src.tokenize."""
     readme = (DESIGN / "README.md").read_text(encoding="utf-8")
-    assert not re.search(r"--tokenizer_(aa|mol)\s+AI4PD/", readme)
-    assert "--model_name_or_path AI4PD" not in readme
-    assert "snapshot_download" in readme and "hf_rexzyme/tokenizer_aa" in readme
-
-
-def test_readme_tokenize_command_works_with_downloaded_tokenizers(
-    work: Path, hub_tokenizers: Path
-) -> None:
+    assert f"--tokenizer_aa {HUB_REPO}/tokenizer_aa" in readme
     data = work / "splits"
     data.mkdir()
     line = '{"translation": {"Reaction": "CC(=O)O>>CCO", "Sequence": "MKKLLAAGG"}}\n'
@@ -248,8 +242,8 @@ def test_readme_tokenize_command_works_with_downloaded_tokenizers(
         [
             sys.executable, "-m", "src.tokenize",
             "--dataset", data,
-            "--tokenizer_aa", hub_tokenizers / "tokenizer_aa",
-            "--tokenizer_mol", hub_tokenizers / "tokenizer_smiles",
+            "--tokenizer_aa", f"{HUB_REPO}/tokenizer_aa",
+            "--tokenizer_mol", f"{HUB_REPO}/tokenizer_smiles",
             "--output_dir", work / "tokenized",
         ],
         cwd=ROOT,
@@ -683,3 +677,51 @@ def test_dpo_launcher_writes_where_the_pipeline_reads(work: Path, tiny_model: Pa
     fasta = work / "results" / "dpo_generated.fasta"
     assert fasta.is_file()
     assert run(["bash", SCRIPTS / "run_deduplicate.sh"], cwd=work).returncode == 0
+
+
+# --------------------------------------------------------------------------- integration: src.inference -> pipeline
+
+
+def test_inference_wrapper_runs_and_its_fasta_feeds_the_pipeline(work: Path, tiny_model: Path) -> None:
+    """scripts/run_inference.sh -> FASTA with ppl headers -> dedupe -> perplexity filter."""
+    reactions = work / "reactions.txt"
+    # unsorted, with a repeat: output order must follow first occurrence
+    reactions.write_text("CCO>>CC=O\nCC(=O)O>>CCO\nC>>C\nCC(=O)O>>CCO\n")
+    out_dir = work / "generated"
+    result = run(
+        ["bash", ROOT / "scripts" / "run_inference.sh"],
+        cwd=work,
+        env={
+            "MODEL_PATH": str(tiny_model),
+            "INPUT_FILE": str(reactions),
+            "OUTPUT_FOLDER": str(out_dir),
+            "NUM_RETURN_SEQUENCES": "4",
+        },
+    )
+    assert result.returncode == 0, result.stderr[-3000:]
+
+    import json
+
+    metadata = json.loads((out_dir / "inference_metadata.json").read_text())
+    smiles_in_file_order = [meta["Smiles"] for path, meta in metadata.items() if path.endswith(".fasta")]
+    assert smiles_in_file_order == ["CCO>>CC=O", "CC(=O)O>>CCO", "C>>C"]
+
+    fasta = out_dir / "output_topk100_file_0.fasta"
+    headers = [l[1:] for l in fasta.read_text().splitlines() if l.startswith(">")]
+    assert len(headers) == 4
+    assert all(re.fullmatch(r"\d+_ppl_\d+\.\d+", h) for h in headers), headers
+
+    (work / "results").mkdir()
+    (work / "results" / "dpo_generated.fasta").write_text(fasta.read_text())
+    assert run(["bash", SCRIPTS / "run_deduplicate.sh"], cwd=work).returncode == 0
+    table = pd.read_csv(work / "results" / "step01_deduplicated.csv")
+    assert table["perplexity"].notna().all()
+    assert run(["bash", SCRIPTS / "run_perplexity_filter.sh"], cwd=work).returncode == 0
+
+
+def test_inference_cli_accepts_every_option_the_wrapper_passes() -> None:
+    wrapper = (ROOT / "scripts" / "run_inference.sh").read_text(encoding="utf-8")
+    passed = set(re.findall(r"^\s+(--[a-z_]+)\s", wrapper, flags=re.MULTILINE))
+    source = (ROOT / "src" / "inference.py").read_text(encoding="utf-8")
+    accepted = set(re.findall(r"add_argument\(\s*['\"](--[a-z_]+)", source))
+    assert passed and passed <= accepted, passed - accepted

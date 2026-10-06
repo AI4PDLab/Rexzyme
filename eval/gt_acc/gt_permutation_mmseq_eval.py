@@ -163,7 +163,7 @@ def concat_inference_fastas(
         if base not in by_basename:
             by_basename[base] = smi
 
-    fasta_pattern = re.compile(r"_file-(\d+)\.fasta$")
+    fasta_pattern = re.compile(r"_file[_-](\d+)\.fasta$")
     files = [fn for fn in os.listdir(inference_folder) if fn.endswith(".fasta")]
     indexed: List[Tuple[int, str]] = []
     for fn in files:
@@ -424,7 +424,14 @@ def main() -> None:
     ap.add_argument(
         "--skip_mmseqs",
         action="store_true",
-        help="Reuse existing mmseqs TSV under inference_folder/gt_mmseqs_permutation/",
+        help="Reuse existing mmseqs TSV under the output directory",
+    )
+    ap.add_argument(
+        "--output-dir",
+        "--output",
+        dest="output_dir",
+        default="",
+        help="Directory for MMseqs hits and JSON summaries (default: <inference_folder>/gt_mmseqs_permutation)",
     )
     args = ap.parse_args()
 
@@ -446,7 +453,7 @@ def main() -> None:
     if not query_records:
         raise RuntimeError("No inference queries built.")
 
-    out_dir = os.path.join(args.inference_folder, "gt_mmseqs_permutation")
+    out_dir = args.output_dir or os.path.join(args.inference_folder, "gt_mmseqs_permutation")
     os.makedirs(out_dir, exist_ok=True)
     out_tab = os.path.join(out_dir, "mmseqs_all_vs_pooled_gt.m8")
 

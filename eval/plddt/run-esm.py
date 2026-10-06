@@ -8,12 +8,14 @@ from transformers import EsmForProteinFolding
 
 parser = argparse.ArgumentParser(description='Run ESMfold',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--fasta_path',
-                    default='', type=str,
-                    help='Path to FASTA database')
-parser.add_argument('--output_path',
-                    default='./', type=str,
-                    help='Path to output directory')
+parser.add_argument('--fasta_path', '--input',
+                    dest='fasta_path',
+                    required=True, type=str,
+                    help='Path to a FASTA file or a folder of FASTA files')
+parser.add_argument('--output_path', '--output',
+                    dest='output_path',
+                    required=True, type=str,
+                    help='Directory for ESMFold PDB files')
 parser.add_argument('--max_len',
                     default=800, type=int,
                     help='Max sequence length to pass to ESMfold')

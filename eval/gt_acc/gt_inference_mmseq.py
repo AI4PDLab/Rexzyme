@@ -14,11 +14,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Prepare GT FASTA files and run MMseqs against generated proteins',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--input_file', type=str, help='File with the input molecule SMILES for inference')
+    parser.add_argument('--input_file', '--input', dest='input_file', type=str,
+                        help='File with the input molecule SMILES for inference')
     parser.add_argument('--inference_folder', required=True, type=str, help='Folder containing fastas from inference')
     parser.add_argument('--dataset_json', required=True, type=str, help='Dataset JSON/JSONL containing ground-truth proteins')
     parser.add_argument('--top_k', default=15, type=int, help='K for top-k sampling')
-    parser.add_argument('--output_folder_gt', required=True, type=str, help='Folder for saving results')
+    parser.add_argument('--output_folder_gt', '--output', dest='output_folder_gt', required=True, type=str,
+                        help='Folder for saving GT FASTAs and MMseqs results')
     parser.add_argument('--cache_path', default="./tmp_cache", type=str,
                         help='MMSeqs cache')
     parser.add_argument('--mmseq_path', default="", type=str,
@@ -228,7 +230,7 @@ if __name__ == '__main__':
 
     # Step 6: List all inference FASTA files in inference_folder
     inference_fastas = [f for f in os.listdir(args.inference_folder) if f.endswith('.fasta')]
-    fasta_pattern = re.compile(r'_file-(\d+)\.fasta')
+    fasta_pattern = re.compile(r'_file[_-](\d+)\.fasta')
 
     # Step 7: Process each inference FASTA
     for fasta_file in inference_fastas:

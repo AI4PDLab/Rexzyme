@@ -148,7 +148,7 @@ def _parse_identity_auto(x: str) -> float:
 
 
 def analyze_mmseqs_output(mmseqs_path, query_fasta, metadata_path=None, training_correspondence_path=None,
-                          input_metadata_file=None):
+                          input_metadata_file=None, output_dir=None):
     seq_identity = {}            # best identity per query (for reporting)
     seq_eff_identity = {}        # best effective identity per query
     alignment_lengths = []       # all alignment lengths (for info)
@@ -285,8 +285,11 @@ def analyze_mmseqs_output(mmseqs_path, query_fasta, metadata_path=None, training
     eff_mean_non_perf = float(np.mean(eff_non_perf)) if eff_non_perf.size else 0.0
     eff_std_non_perf = float(np.std(eff_non_perf)) if eff_non_perf.size else 0.0
 
+    out_dir = output_dir or mmseqs_path
+    os.makedirs(out_dir, exist_ok=True)
+
     # Save main results → two rows: identity, effective_identity
-    output_file = f"{mmseqs_path}/novelty.csv"
+    output_file = f"{out_dir}/novelty.csv"
     df = pd.DataFrame([
         {
             'Metric': 'identity',
@@ -316,7 +319,7 @@ def analyze_mmseqs_output(mmseqs_path, query_fasta, metadata_path=None, training
     df.to_csv(output_file, index=False, float_format='%.4f')
 
     # Save sequence-specific results with original identifiers (identity only, unchanged)
-    sequence_results_file = f"{mmseqs_path}/sequence_identities.csv"
+    sequence_results_file = f"{out_dir}/sequence_identities.csv"
     sequence_data = []
     for numeric_id in range(0, total_queries):
         original_id = str(numeric_id)
@@ -496,11 +499,11 @@ def analyze_mmseqs_output(mmseqs_path, query_fasta, metadata_path=None, training
                 pdb_idx += 1
 
     # Save detailed results
-    detailed_results_file = f"{mmseqs_path}/detailed_results.json"
+    detailed_results_file = f"{out_dir}/detailed_results.json"
     with open(detailed_results_file, 'w') as f:
         json.dump(detailed_results, f, indent=2)
 
-    all_matches_file = f"{mmseqs_path}/all_matches_results.pkl"
+    all_matches_file = f"{out_dir}/all_matches_results.pkl"
     # Set compress=True to gzip (smaller but a bit slower); False is already compact & fast
     save_pickle(all_matches_results, all_matches_file, compress=False)
 
@@ -549,10 +552,13 @@ def main():
                         help="Path to the training sequence correspondence JSON file")
     parser.add_argument('--input_metadata_file', type=str,
                         help="Path to molecule_gt-input_metadata.json with ground-truth protein sequences")
+    parser.add_argument('--output-dir', '--output', dest='output_dir', type=str, default=None,
+                        help="Directory for novelty.csv and other result files (default: --mmseqs_path)")
     args = parser.parse_args()
 
     analyze_mmseqs_output(args.mmseqs_path, args.query_fasta, args.metadata_file,
-                          args.training_correspondence, args.input_metadata_file)
+                          args.training_correspondence, args.input_metadata_file,
+                          output_dir=args.output_dir)
 
 if __name__ == "__main__":
     main()

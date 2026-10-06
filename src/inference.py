@@ -3,6 +3,7 @@ Previously called generate_comparison"""
 
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, set_seed
 import argparse
+import math
 import os
 import torch
 import json
@@ -11,6 +12,18 @@ import torch.nn.functional as F
 from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
+
+
+def split_hf_subfolder_ref(spec: str, fallback_subfolder: str | None = None) -> tuple[str, str | None]:
+    """Support both owner/repo and owner/repo/subfolder references."""
+    if Path(spec).exists():
+        return spec, None
+    parts = spec.strip("/").split("/")
+    if len(parts) >= 3:
+        repo_id = "/".join(parts[:2])
+        subfolder = "/".join(parts[2:])
+        return repo_id, subfolder
+    return spec, fallback_subfolder
 
 
 def compute_transition_scores(sequences, scores, pad_token_id, normalize_by_length=True):
@@ -65,6 +78,17 @@ def compute_transition_scores(sequences, scores, pad_token_id, normalize_by_leng
     return transition_scores_tensor.tolist()
 
 
+def calculate_perplexity(model, src_ids, tgt_ids, tgt_tokenizer):
+    """Conditional perplexity P(tgt | src) from teacher-forced NLL."""
+    labels = tgt_ids.clone()
+    pad_id = tgt_tokenizer.pad_token_id
+    if pad_id is not None:
+        labels[labels == pad_id] = -100
+    with torch.no_grad():
+        outputs = model(input_ids=src_ids, labels=labels)
+    return math.exp(outputs.loss.item())
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Rexzyme inference',
@@ -78,11 +102,16 @@ if __name__ == '__main__':
                         help='Path or Hugging Face repo ID for amino acid tokenizer')
     parser.add_argument('--tokenizer_mol', type=str, required=True,
                         help='Path or Hugging Face repo ID for SMILES tokenizer')
-    parser.add_argument('--tokenizer_aa_subfolder', type=str, default="aa",
-                        help='Subfolder in tokenizer_aa repo (e.g. tokenizer_aa when both tokenizers live in model repo)')
-    parser.add_argument('--tokenizer_mol_subfolder', type=str, default="smiles",
-                        help='Subfolder in tokenizer_mol repo (e.g. tokenizer_mol when both tokenizers live in model repo)')
-    parser.add_argument('--top_k', default=15, type=int, help='K for top-k sampling')
+    parser.add_argument('--tokenizer_aa_subfolder', type=str, default="tokenizer_aa",
+                        help='Subfolder when --tokenizer_aa is the model repo (AI4PD/REXzyme)')
+    parser.add_argument('--tokenizer_mol_subfolder', type=str, default="tokenizer_smiles",
+                        help='Subfolder when --tokenizer_mol is the model repo (AI4PD/REXzyme)')
+    parser.add_argument('--top_k', default=100, type=int, help='K for top-k sampling')
+    parser.add_argument('--top_p', default=1.0, type=float, help='Nucleus sampling threshold')
+    parser.add_argument('--repetition_penalty', default=1.0, type=float,
+                        help='Repetition penalty passed to generate()')
+    parser.add_argument('--num_return_sequences', default=25, type=int,
+                        help='Sequences to sample per reaction')
     parser.add_argument('--seed', default=0, type=int, help='Random seed for reproducibility')
     parser.add_argument('--output_folder', default='fastas', type=str,
                         help='Folder for saving results')
@@ -93,10 +122,11 @@ if __name__ == '__main__':
 
     # Load protein tokenizer
     def load_tokenizer(arg, subfolder=None):
-        if Path(arg).exists():
-            return AutoTokenizer.from_pretrained(arg)
-        else:
-            return AutoTokenizer.from_pretrained(arg, subfolder=subfolder)
+        ref, resolved_subfolder = split_hf_subfolder_ref(arg, fallback_subfolder=subfolder)
+        kwargs = {}
+        if resolved_subfolder:
+            kwargs["subfolder"] = resolved_subfolder
+        return AutoTokenizer.from_pretrained(ref, **kwargs)
 
     tokenizer_aa = load_tokenizer(args.tokenizer_aa, subfolder=args.tokenizer_aa_subfolder)
     tokenizer_mol = load_tokenizer(args.tokenizer_mol, subfolder=args.tokenizer_mol_subfolder)
@@ -144,7 +174,11 @@ if __name__ == '__main__':
                 add_smiles(line.strip())
 
     # Load model
-    model = AutoModelForSeq2SeqLM.from_pretrained(args.model_path)
+    model_ref, model_subfolder = split_hf_subfolder_ref(args.model_path)
+    model_kwargs = {}
+    if model_subfolder:
+        model_kwargs["subfolder"] = model_subfolder
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_ref, **model_kwargs)
     model.eval()
     model.to(device)
     print('Model loaded')
@@ -176,10 +210,11 @@ if __name__ == '__main__':
             outputs_dict = model.generate(
                 input_ids,
                 top_k=args.top_k,
-                repetition_penalty=1.2,
+                top_p=args.top_p,
+                repetition_penalty=args.repetition_penalty,
                 max_length=1024,
                 do_sample=True,
-                num_return_sequences=25,
+                num_return_sequences=args.num_return_sequences,
                 return_dict_in_generate=True,
                 output_scores=True,
                 use_cache=True,
@@ -201,6 +236,10 @@ if __name__ == '__main__':
         ppxt_samples = [np.exp(-s) for s in transition_scores]
 
         sequences = [tokenizer_aa.decode(o, skip_special_tokens=True) for o in outputs]
+        ppls = [
+            calculate_perplexity(model, input_ids, out_ids.unsqueeze(0), tokenizer_aa)
+            for out_ids in outputs
+        ]
 
         # Model forward for greedy perplexity
         g_labels = greedy_outputs.clone()
@@ -213,12 +252,13 @@ if __name__ == '__main__':
         nll = forward_outputs.loss.item()
 
         # Filename of the output fasta
-        filename = f'{args.output_folder}/output_topk{args.top_k}_file-{index}.fasta'
+        filename = f'{args.output_folder}/output_topk{args.top_k}_file_{index}.fasta'
         os.makedirs(args.output_folder, exist_ok=True)
 
         with open(filename, 'w') as fn:
-            for idx, seq in enumerate(sequences):
-                fn.write(f">{idx}\n{seq}\n")
+            for idx, (seq, ppl) in enumerate(zip(sequences, ppls)):
+                fn.write(f">{idx}_ppl_{ppl:.2f}\n")
+                fn.write(seq + "\n")
         # Register per-FASTA metadata (SMILES, perplexities, optional GT)
         molecule_gt_json[filename] = {'fasta_perplexity': ppxt_samples, 'Smiles': smiles, 'Perplexity_greedy': np.exp(nll)}
         molecule_input_metadata[filename] = smiles
@@ -251,6 +291,9 @@ if __name__ == '__main__':
         'tokenizer_mol': args.tokenizer_mol,
         'input_file': args.input_file,
         'top_k': args.top_k,
+        'top_p': args.top_p,
+        'repetition_penalty': args.repetition_penalty,
+        'num_return_sequences': args.num_return_sequences,
         'seed': args.seed,
     }
     with open(run_metadata_path, 'w') as f:

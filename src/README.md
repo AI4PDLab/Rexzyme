@@ -1,70 +1,86 @@
-# Training example
+# Source
 
-End-to-end placeholder flow: **tokenize** curated Rexzyme JSON → **train** a seq2seq model → **infer** with [`inference.py`](inference.py) → **evaluate** with scripts under [`../eval/`](../eval/) (those scripts expect FASTAs + metadata already on disk).
+Tokenize a reaction–sequence dataset, train a seq2seq model, and generate
+enzyme FASTAs. Evaluation scripts live under [`../eval/`](../eval/) and expect
+FASTAs plus metadata already on disk.
 
-## Dataset loading (Hub-first, local fallback)
+## Scripts
 
-[`tokenize.py`](tokenize.py) uses Hugging Face [`datasets.load_dataset`](https://huggingface.co/docs/datasets/) in both cases:
+| Script | Role |
+|--------|------|
+| [`hf_assets.py`](hf_assets.py) | Resolve files from [AI4PD/REXzyme](https://huggingface.co/AI4PD/REXzyme) |
+| [`tokenize.py`](tokenize.py) | Hub-first or local JSON → tokenized `DatasetDict` |
+| [`train.py`](train.py) | `Seq2SeqTrainer` on that `DatasetDict` |
+| [`inference.py`](inference.py) | Generate FASTAs from reaction SMILES |
+
+Wrappers: [`../scripts/run_inference.sh`](../scripts/run_inference.sh) (paper sampling) and [`../scripts/run_train.sh`](../scripts/run_train.sh).
+
+The paper checkpoint (`checkpoint-90000`), tokenizers (`tokenizer_aa`,
+`tokenizer_smiles`), and train/validation JSON live in the same Hub repo.
+Tokenizers are Hugging Face `AutoTokenizer` checkpoints (Hub ids or local directories).
+
+## Generate sequences
+
+[`inference.py`](inference.py) reads a SMILES text file (or JSON/JSONL with
+`translation` entries) and writes one FASTA per reaction. Paper generation
+used `top_k=100`, `top_p=1.0`, `repetition_penalty=1.0`, and 25 sequences:
+
+```bash
+export INPUT_FILE=data/generation_most.txt
+export OUTPUT_FOLDER=generation_output
+bash scripts/run_inference.sh
+```
+
+FASTA headers are `>idx_ppl_...` (teacher-forced conditional perplexity).
+The wrapper defaults to `AI4PD/REXzyme/checkpoint-90000`. See
+[`../scripts/README.md`](../scripts/README.md) for every environment variable.
+
+Optional flags on `inference.py`: `--top_k`, `--top_p`, `--repetition_penalty`,
+`--num_return_sequences`, `--seed`.
+
+## Dataset loading (tokenize)
+
+[`tokenize.py`](tokenize.py) uses Hugging Face `datasets.load_dataset`:
 
 | Source | `--dataset` value | Behavior |
 |--------|-------------------|----------|
-| **Hub (default)** | `AI4PD/TODO` | `load_dataset(dataset_id, …)` |
+| **Hub model repo (default)** | `AI4PD/REXzyme` | Downloads `training_dataset.json` and `validation_dataset.json` from the [model repo](https://huggingface.co/AI4PD/REXzyme) |
+| **Other Hub dataset** | any `owner/name` | `load_dataset(dataset_id, …)` |
 | **Local file or folder** | Path that exists on disk | `load_dataset("json", data_files=…)` |
 
-- If `--dataset` is a **file** (`.json` / `.jsonl`), that file is loaded as JSON lines or array JSON.
-- If `--dataset` is a **directory**, split files are inferred when named like `train.jsonl`, `val.jsonl`, `test.jsonl` (same style as [`../data/random_splits.py`](../data/random_splits.py)).
-- Override inferred splits with repeated `--data_files split=relative_or_absolute_path` (e.g. `--data_files train=train.jsonl --data_files validation=val.jsonl`).
+Those Hub files are JSONL. Each line is `{"translation": {"Reaction": "<SMILES>", "Sequence": "<protein>"}}`. The encoder uses `Reaction`; the decoder uses `Sequence` (`Protein sequence` is accepted as a fallback).
+
+- A **file** (`.json` / `.jsonl`) is loaded as JSON lines or array JSON.
+- A **directory** infers splits named `train.jsonl`, `val.jsonl`, `test.jsonl`.
+- Override splits with `--data_files split=path`.
 
 Optional Hub flags: `--revision`, `--trust_remote_code`, `--split`, `--cache_dir`.
 
-Outputs:
+Outputs: a `DatasetDict` in `--output_dir` (`dataset_dict.json`) and
+`tokenize_metadata.json`.
 
-- **Tokenized dataset**: `--output_dir` contains a `DatasetDict` saved via `save_to_disk` (includes `dataset_dict.json`).
-- **Metadata**: `tokenize_metadata.json` next to it (tokenizer paths, inferred fields).
+## Example training
 
-## One-shot train wrapper
+[`../scripts/run_train.sh`](../scripts/run_train.sh) runs `tokenize.py` when
+`TOKENIZED_DIR/dataset_dict.json` is missing (or when `FORCE_TOKENIZE=1`),
+then [`train.py`](train.py).
 
-[`run_train.sh`](run_train.sh) runs `tokenize.py` when `TOKENIZED_DIR/dataset_dict.json` is missing (or when `FORCE_TOKENIZE=1`), then [`train.py`](train.py).
-
-Required environment variables:
-
-- `TOKENIZER_AA`, `TOKENIZER_MOL` — same as inference.
-- `MODEL_NAME_OR_PATH` — base checkpoint (e.g. `google/t5-small`).
-
-Optional:
-
-- `DATASET` — Hub id (default `AI4PD/TODO`).
-- `LOCAL_DATASET_PATH` — if set, used instead of `DATASET` for `--dataset` (local path).
-- `TOKENIZED_DIR` — default `./data/tokenized`.
-- `OUTPUT_DIR` — training output; default `./results/training_output`.
-- `HF_REVISION`, `TRUST_REMOTE_CODE`, `FORCE_TOKENIZE`, `TRAIN_EXTRA_ARGS`.
-
-Example (Git Bash):
+Required: `TOKENIZER_AA`, `TOKENIZER_MOL`, `MODEL_NAME_OR_PATH`.
 
 ```bash
-export TOKENIZER_AA=/path/to/aa_tokenizer
-export TOKENIZER_MOL=/path/to/mol_tokenizer
-export MODEL_NAME_OR_PATH=google/t5-small
+export TOKENIZER_AA=AI4PD/REXzyme/tokenizer_aa
+export TOKENIZER_MOL=AI4PD/REXzyme/tokenizer_smiles
+export MODEL_NAME_OR_PATH=AI4PD/REXzyme/checkpoint-90000   # fine-tune from paper checkpoint
+export DATASET=AI4PD/REXzyme
 bash scripts/run_train.sh
 ```
 
-Local splits instead of Hub:
+Local splits instead of the Hub:
 
 ```bash
-export LOCAL_DATASET_PATH=/path/to/splits_dir   # contains train.jsonl, val.jsonl, ...
+export LOCAL_DATASET_PATH=/path/to/splits_dir
 bash scripts/run_train.sh
 ```
 
-## Scripts overview
-
-| Script / path | Role |
-|---------------|------|
-| [`tokenize.py`](tokenize.py) | Hub-first / local JSON → tokenized `DatasetDict` on disk. |
-| [`train.py`](train.py) | Minimal `Seq2SeqTrainer` on that `DatasetDict` (extend as needed). |
-| [`inference.py`](inference.py) | Generates FASTAs + `molecule_*_metadata.json` for eval. |
-| [`eval_scripts/run_inference_and_eval.sh`](eval_scripts/run_inference_and_eval.sh) | Inference + MMseqs / join / optional pLDDT. |
-
-## Notes
-
-- **Tokenizers**: Use Hugging Face `AutoTokenizer` checkpoints only (local dirs or Hub ids). `tokenize.py` and `inference.py` load them via `transformers.AutoTokenizer.from_pretrained`.
-- **`train.py`** loads `AutoTokenizer` from the `tokenizer_aa` path recorded in `tokenize_metadata.json`.
+`train.py` loads `AutoTokenizer` from the `tokenizer_aa` path recorded in
+`tokenize_metadata.json`.

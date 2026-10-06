@@ -72,67 +72,104 @@ def collate_fasta(input_folder, output_file):
     print(f"Sequence correspondence saved to {correspondence_file}")
 
 
+def iter_json_records(json_file):
+    """Yield records from Hub-style JSONL or a JSON array."""
+    with open(json_file, encoding="utf-8") as handle:
+        first = handle.readline()
+        stripped = first.lstrip()
+        if stripped.startswith("["):
+            handle.seek(0)
+            records = json.load(handle)
+            if isinstance(records, list):
+                yield from records
+            elif records:
+                yield records
+            return
+
+        def parse_line(line: str):
+            line = line.strip()
+            if not line:
+                return None
+            return json.loads(line)
+
+        record = parse_line(first)
+        if record is not None:
+            yield record
+        for line in handle:
+            record = parse_line(line)
+            if record is not None:
+                yield record
+
+
+def sequences_from_record(record):
+    """Paper records use translation.Sequence; older files use Protein sequence."""
+    translation = record.get("translation") if isinstance(record, dict) else None
+    if not isinstance(translation, dict):
+        return []
+
+    seq = translation.get("Sequence")
+    if seq is None:
+        seq = translation.get("Protein sequence")
+    if isinstance(seq, str):
+        seq = seq.strip()
+        return [seq] if seq else []
+    if isinstance(seq, list):
+        return [item.strip() for item in seq if isinstance(item, str) and item.strip()]
+    return []
+
+
 def json_to_fasta(json_file, output_file):
     if not json_file:
         print("No JSON file provided for conversion. Skipping JSON to FASTA.")
         return
 
     try:
-        print(f"Writing Train dataset fasta and correspondence...")
-        # Dictionary to store mapping: numeric_id -> original_identifier
+        print("Writing Train dataset fasta and correspondence...")
         id_mapping = {}
-        # Dictionary to store sequence correspondence: index -> {sequence, original_id}
         sequence_correspondence = {}
+        index = 0
 
-        with open(json_file, 'r') as infile, open(output_file, 'w') as outfile:
-            index = 0  # Start from 0 instead of 1
-            prot_key = "Protein sequence"
-            done = False
-            for line in infile:
+        with open(output_file, "w", encoding="utf-8") as outfile:
+            for record in iter_json_records(json_file):
                 try:
-                    record = json.loads(line)
-                    if not done and 'Reaction' in record.keys():
-                        prot_key = 'Sequence'
-                        done = True
-                    try:
-                        protein_seq = record["translation"][prot_key]
-                    except:
-                        prot_key = "Sequence"
-                        protein_seq = record["translation"][prot_key]
+                    sequences = sequences_from_record(record)
+                    if not sequences:
+                        raise KeyError("translation.Sequence")
+                    reaction = ""
+                    translation = record.get("translation") if isinstance(record, dict) else None
+                    if isinstance(translation, dict):
+                        reaction = translation.get("Reaction") or translation.get(
+                            "Canonical Smiles"
+                        ) or ""
+                    for protein_seq in sequences:
+                        original_id = f"json_record_{index}"
+                        if isinstance(record, dict):
+                            if "id" in record:
+                                original_id = str(record["id"])
+                            elif "name" in record:
+                                original_id = str(record["name"])
+                            elif "identifier" in record:
+                                original_id = str(record["identifier"])
+                        id_mapping[index] = original_id
+                        sequence_correspondence[index] = {
+                            "sequence": protein_seq,
+                            "original_id": original_id,
+                            "reaction": reaction,
+                        }
+                        outfile.write(f">{index}\n")
+                        outfile.write(f"{protein_seq}\n")
+                        index += 1
+                except (KeyError, json.JSONDecodeError, TypeError) as error:
+                    preview = json.dumps(record)[:200] if not isinstance(record, str) else record[:200]
+                    print(f"Skipping invalid JSON record: {preview}\n{error}")
 
-                    # Try to extract original identifier from the record
-                    # You may need to adjust this based on your JSON structure
-                    original_id = f"json_record_{index}"  # Default fallback
-                    if 'id' in record:
-                        original_id = str(record['id'])
-                    elif 'name' in record:
-                        original_id = str(record['name'])
-                    elif 'identifier' in record:
-                        original_id = str(record['identifier'])
+        metadata_file = output_file.replace(".fasta", "_metadata.pkl")
+        with open(metadata_file, "wb") as handle:
+            pickle.dump(id_mapping, handle)
 
-                    # Store mapping
-                    id_mapping[index] = original_id
-                    # Store sequence correspondence
-                    sequence_correspondence[index] = {
-                        'sequence': protein_seq,
-                        'original_id': original_id
-                    }
-
-                    outfile.write(f'>{index}\n')
-                    outfile.write(f'{protein_seq}\n')
-                    index += 1
-                except (KeyError, json.JSONDecodeError) as e:
-                    print(f"Skipping invalid JSON record: {line.strip()}\n{e}")
-
-        # Save metadata file
-        metadata_file = output_file.replace('.fasta', '_metadata.pkl')
-        with open(metadata_file, 'wb') as f:
-            pickle.dump(id_mapping, f)
-
-        # Save sequence correspondence file for training data
-        correspondence_file = output_file.replace('.fasta', '_sequence_correspondence.json')
-        with open(correspondence_file, 'w') as f:
-            json.dump(sequence_correspondence, f, indent=2)
+        correspondence_file = output_file.replace(".fasta", "_sequence_correspondence.json")
+        with open(correspondence_file, "w", encoding="utf-8") as handle:
+            json.dump(sequence_correspondence, handle, indent=2)
 
         print(f"Metadata mapping saved to {metadata_file}")
         print(f"Training sequence correspondence saved to {correspondence_file}")
@@ -146,8 +183,19 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Collate FASTA files and convert JSON to FASTA")
-    parser.add_argument('--fasta_folder', type=str, help="Path to the folder containing FASTA files")
-    parser.add_argument('--json_file', type=str, help="Path to the JSON file")
+    parser.add_argument('--fasta_folder', '--input', dest='fasta_folder', type=str,
+                        help="Path to the folder containing FASTA files")
+    parser.add_argument(
+        '--json_file',
+        type=str,
+        help="Local training JSON or Hugging Face repo id (AI4PD/REXzyme)",
+    )
+    parser.add_argument(
+        '--output',
+        type=str,
+        default=None,
+        help="Output FASTA from --json_file (default: <json>.fasta, or training_dataset.fasta for Hub)",
+    )
     parser.add_argument('--collated_fasta', type=str, default='collated.fasta',
                         help="Output FASTA file for collated sequences")
 
@@ -163,10 +211,22 @@ def main():
         collate_fasta(args.fasta_folder, output_file)
 
     if args.json_file:
-        output_dir = args.json_file.replace('.json', '') + '.fasta'
+        import sys
+        from pathlib import Path as _Path
+
+        sys.path.append(str(_Path(__file__).resolve().parents[2] / "src"))
+        from hf_assets import resolve_train_json
+
+        json_path = str(resolve_train_json(args.json_file))
+        if args.output:
+            output_dir = args.output
+        elif os.path.isfile(args.json_file):
+            output_dir = json_path.replace('.json', '') + '.fasta'
+        else:
+            output_dir = 'training_dataset.fasta'
         print(f'Creating {output_dir} ...')
         if not os.path.exists(output_dir):
-            json_to_fasta(args.json_file, output_dir)
+            json_to_fasta(json_path, output_dir)
         else:
             print(f'Skipping, it already exists')
 

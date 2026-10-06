@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Tokenize Rexzyme JSON records for seq2seq training (T5 example).
 
-Loads data **Hub-first** via ``datasets.load_dataset`` when ``--dataset`` is not
-an existing local path; otherwise loads JSON/JSONL with the same ``load_dataset``
-API (``"json"`` builder). This matches split outputs from ``data/random_splits.py``
-and ``data/max_protein_dist_splits.py`` (``train.jsonl``, ``val.jsonl``, etc.).
+Loads data **Hub-first**. The default ``--dataset AI4PD/REXzyme`` downloads
+``training_dataset.json`` and ``validation_dataset.json`` from the model repo
+(https://huggingface.co/AI4PD/REXzyme). A local JSON/JSONL path uses the same
+``load_dataset("json", …)`` API (including splits from ``data/random_splits.py``
+and ``data/max_protein_dist_splits.py``).
 """
 
 from __future__ import annotations
@@ -12,12 +13,28 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from datasets import Dataset, DatasetDict, load_dataset
 from transformers import AutoTokenizer
 
-DEFAULT_HUB_DATASET = "AI4PD/TODO"
+_SRC_DIR = Path(__file__).resolve().parent
+if str(_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(_SRC_DIR))
+
+DEFAULT_HUB_DATASET = "AI4PD/REXzyme"
+
+
+def split_hf_subfolder_ref(spec: str) -> tuple[str, str | None]:
+    """Support owner/repo/subfolder shorthand for tokenizer references."""
+    if Path(spec).exists():
+        return spec, None
+    parts = spec.strip("/").split("/")
+    if len(parts) >= 3:
+        return "/".join(parts[:2]), "/".join(parts[2:])
+    return spec, None
 
 
 def get_unknown_token_id(tokenizer) -> Optional[int]:
@@ -107,7 +124,7 @@ def load_raw_dataset(
     trust_remote_code: bool,
     data_files_kv: Optional[Dict[str, str]],
 ) -> Union[Dataset, DatasetDict]:
-    """Hub repo id or local path -> Dataset or DatasetDict via ``load_dataset``."""
+    """Hub repo id, model-repo JSON, or local path -> Dataset / DatasetDict."""
     if os.path.exists(dataset_arg):
         data_files = resolve_local_data_files(dataset_arg, data_files_kv)
         return load_dataset(
@@ -116,6 +133,20 @@ def load_raw_dataset(
             cache_dir=cache_dir,
             split=split,
         )
+
+    # Paper train/val JSON live in the AI4PD/REXzyme *model* repo, not a Dataset repo.
+    from hf_assets import DEFAULT_HF_REPO, TRAIN_JSON_NAME, VAL_JSON_NAME, resolve_hub_file
+
+    if dataset_arg == DEFAULT_HF_REPO or dataset_arg.startswith(f"{DEFAULT_HF_REPO}/"):
+        train_path = resolve_hub_file(DEFAULT_HF_REPO, filename=TRAIN_JSON_NAME)
+        val_path = resolve_hub_file(DEFAULT_HF_REPO, filename=VAL_JSON_NAME)
+        return load_dataset(
+            "json",
+            data_files={"train": train_path, "validation": val_path},
+            cache_dir=cache_dir,
+            split=split,
+        )
+
     kwargs = {
         "cache_dir": cache_dir,
         "split": split,
@@ -136,7 +167,11 @@ def load_tokenizer(path: str) -> Any:
     """Load a Hugging Face ``AutoTokenizer`` from a local path or Hub id."""
     if not path:
         raise ValueError("Tokenizer path is empty")
-    return AutoTokenizer.from_pretrained(path)
+    ref, subfolder = split_hf_subfolder_ref(path)
+    kwargs = {}
+    if subfolder:
+        kwargs["subfolder"] = subfolder
+    return AutoTokenizer.from_pretrained(ref, **kwargs)
 
 
 def detect_source_target(first_translation: Dict[str, Any]) -> Tuple[str, str]:
@@ -241,7 +276,7 @@ def parse_args() -> argparse.Namespace:
         "--dataset",
         type=str,
         default=DEFAULT_HUB_DATASET,
-        help="Hub dataset id, or an existing path to a JSON/JSONL file or directory of splits.",
+        help="Hub repo id (default: AI4PD/REXzyme — train/val JSON), or a local JSON/JSONL path.",
     )
     p.add_argument(
         "--data_files",

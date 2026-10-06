@@ -43,24 +43,6 @@ training proceeds without a validation set (a warning is printed).
 
 Use the tokenization scripts provided in this repository.
 
-`src/tokenize.py` and `src/train.py` take **local directories** for the
-tokenizers and the pretrained checkpoint (they do not understand
-`AI4PD/REXzyme/<subfolder>` ids). Download them once from the Hub:
-
-```bash
-python - <<'PY'
-from huggingface_hub import snapshot_download
-print(snapshot_download(
-    "AI4PD/REXzyme",
-    allow_patterns=["tokenizer_aa/*", "tokenizer_smiles/*", "checkpoint-90000/*"],
-    local_dir="hf_rexzyme",
-))
-PY
-```
-
-This creates `hf_rexzyme/tokenizer_aa`, `hf_rexzyme/tokenizer_smiles` and
-`hf_rexzyme/checkpoint-90000`, used below.
-
 ### Option A - Use `src/tokenize.py` directly
 
 If our data is already split into `train.json` / `val.json` files in one directory:
@@ -68,8 +50,8 @@ If our data is already split into `train.json` / `val.json` files in one directo
 ```bash
 python -m src.tokenize \
   --dataset /path/to/your_splits_dir \
-  --tokenizer_aa hf_rexzyme/tokenizer_aa \
-  --tokenizer_mol hf_rexzyme/tokenizer_smiles \
+  --tokenizer_aa AI4PD/REXzyme/tokenizer_aa \
+  --tokenizer_mol AI4PD/REXzyme/tokenizer_smiles \
   --output_dir /path/to/tokenized_dataset
 ```
 
@@ -80,15 +62,16 @@ python -m src.tokenize \
   --dataset /path/to/your_splits_dir \
   --data_files train=training_dataset.json \
   --data_files validation=validation_dataset.json \
-  --tokenizer_aa hf_rexzyme/tokenizer_aa \
-  --tokenizer_mol hf_rexzyme/tokenizer_smiles \
+  --tokenizer_aa AI4PD/REXzyme/tokenizer_aa \
+  --tokenizer_mol AI4PD/REXzyme/tokenizer_smiles \
   --output_dir /path/to/tokenized_dataset
 ```
 
 Notes:
 
 - `--dataset` accepts a local JSON/JSONL file, a split directory, or a Hub id.
-- Tokenizer paths are local directories (see the download step above).
+- Tokenizer paths support Hub subfolder notation (`AI4PD/REXzyme/tokenizer_aa`)
+  or a local directory.
 - Tokenization output is written to `--output_dir` and consumed by `src/train.py`.
 
 ### Option B - Use the wrapper script
@@ -107,9 +90,8 @@ bash scripts/run_train.sh
 
 Critical points for fine-tuning:
 
-- Set `--model_name_or_path` (or `MODEL_NAME_OR_PATH`) to the local pretrained
-  checkpoint directory (e.g. `hf_rexzyme/checkpoint-90000` from the download
-  step above).
+- Set `--model_name_or_path` (or `MODEL_NAME_OR_PATH`) to the pretrained
+  checkpoint path (e.g. `AI4PD/REXzyme/checkpoint-90000`).
 
 Fine-tuning from a pretrained checkpoint is the default behavior of
 `src/train.py`.
