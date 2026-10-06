@@ -26,7 +26,16 @@ def split_hf_subfolder_ref(spec: str, fallback_subfolder: str | None = None) -> 
     return spec, fallback_subfolder
 
 
-def compute_transition_scores(sequences, scores, pad_token_id, normalize_by_length=True):
+def compute_transition_scores(sequences, scores, pad_token_id, normalize_by_length=True,
+                              eos_token_id=None):
+    """Mean (or summed) log-probability of the sampled tokens of each sequence.
+
+    ``eos_token_id`` (int or list of ints): when given, only the positions up to and
+    including the first end-of-sequence token of each sequence are scored. Positions
+    after it are padding that ``generate()`` appends to sequences that finished before
+    the longest one in the batch; counting them lowers the score of short sequences.
+    When None, every position is scored.
+    """
     batch_size = sequences.size(0)
     num_scores = len(scores)
 
@@ -53,6 +62,12 @@ def compute_transition_scores(sequences, scores, pad_token_id, normalize_by_leng
 
     # Create mask for valid (non-inf, non-nan) values
     valid_mask = ~(torch.isinf(token_logprobs) | torch.isnan(token_logprobs))
+
+    if eos_token_id is not None:
+        eos_ids = torch.as_tensor(eos_token_id, device=predicted_tokens.device).reshape(-1)
+        is_eos = torch.isin(predicted_tokens, eos_ids).long()      # (B, T)
+        eos_before = is_eos.cumsum(dim=1) - is_eos                 # EOS tokens strictly before each position
+        valid_mask = valid_mask & (eos_before == 0).transpose(0, 1)
 
     # Replace invalid values with 0 (safe for summation)
     token_logprobs = token_logprobs.masked_fill(~valid_mask, 0.0)
@@ -183,6 +198,10 @@ if __name__ == '__main__':
     model.to(device)
     print('Model loaded')
 
+    eos_token_id = model.generation_config.eos_token_id
+    if eos_token_id is None:
+        eos_token_id = tokenizer_aa.eos_token_id
+
     pad_token_id = (
         tokenizer_aa.pad_token_id
         if tokenizer_aa.pad_token_id is not None
@@ -232,6 +251,7 @@ if __name__ == '__main__':
             scores=outputs_dict.scores,
             pad_token_id=pad_token_id,
             normalize_by_length=True,
+            eos_token_id=eos_token_id,
         )
         ppxt_samples = [np.exp(-s) for s in transition_scores]
 
