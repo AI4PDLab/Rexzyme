@@ -131,6 +131,8 @@ Typical proxy examples:
 - structure/quality proxies (`plddt`, `tmscore`)
 - any custom score we provide in the table
 
+The table we used that recaps the FDH sequences and the kinetic values can be found here: `/DPO_sequences/FDH_activity.xlsx`
+
 ## Part III - Multi-stage filtering pipeline
 
 Use [`filtering_pipeline/`](filtering_pipeline/) for a practical sequence
