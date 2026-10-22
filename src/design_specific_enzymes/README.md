@@ -26,6 +26,7 @@ Use JSONL lines with the schema:
 {"translation": {"Reaction": "C(=O)..", "Sequence": "MS..."}}
 {"translation": {"Reaction": "C(=O)..", "Sequence": "MS..."}}
 ```
+The sequences we used for the fine-tuning of FDHs descrived in the manuscript can be found under `finetunning_sequences/`
 
 Recommended: provide **two files in the same directory**, named exactly:
 
