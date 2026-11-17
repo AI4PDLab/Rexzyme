@@ -7,6 +7,8 @@ Regenerate them with [`../../scripts/run_inference.sh`](../../scripts/run_infere
 
 `output_topk100_file_N.fasta` contains the sequences for reaction `N` (0-based) in the matching file under [`data/`](../). `smiles_map.json` in each folder records the same FASTA-to-SMILES mapping.
 
+The `ppl` values in these headers were computed before a fix to the perplexity calculation and are about 1% higher than what the current [`src/inference.py`](../../src/inference.py) reports. The sequences themselves are unaffected.
+
 | Folder | Reaction file | Sequences |
 |--------|---------------|-----------|
 | [`generation_most/`](generation_most/) | [`../generation_most.txt`](../generation_most.txt) | 20 × 25 = 500 |
