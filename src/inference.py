@@ -3,6 +3,7 @@ Previously called generate_comparison"""
 
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, set_seed
 import argparse
+import math
 import os
 import torch
 import json
@@ -13,9 +14,9 @@ from collections import defaultdict
 from pathlib import Path
 
 try:  # `python -m src.inference` from the repo root, or `from src import inference`
-    from src.sequence_scoring import sequence_perplexities
+    from src.sequence_scoring import generated_sequence_nll
 except ImportError:  # `python src/inference.py`
-    from sequence_scoring import sequence_perplexities
+    from sequence_scoring import generated_sequence_nll
 
 
 def split_hf_subfolder_ref(spec: str, fallback_subfolder: str | None = None) -> tuple[str, str | None]:
@@ -251,11 +252,8 @@ if __name__ == '__main__':
         sequences = [tokenizer_aa.decode(o, skip_special_tokens=True) for o in outputs]
         # Teacher-forced perplexity of the generated tokens (see src/sequence_scoring.py: the
         # decoder start token that generate() prepends must not be passed back as a label).
-        encoder_inputs = {"input_ids": input_ids, "attention_mask": encoder_attention_mask}
-        scoring = {"model_inputs": encoder_inputs, "eos_token_id": eos_token_id, "pad_token_id": pad_token_id}
-        # One row at a time keeps peak GPU memory as low as generation itself.
-        ppls = sequence_perplexities(model, outputs, batch_size=1, **scoring)
-        greedy_ppl = sequence_perplexities(model, greedy_outputs, **scoring)[0]
+        ppls = [math.exp(nll) for nll in generated_sequence_nll(model, outputs, input_ids, encoder_attention_mask)]
+        greedy_ppl = math.exp(generated_sequence_nll(model, greedy_outputs, input_ids, encoder_attention_mask)[0])
 
         # Filename of the output fasta
         filename = f'{args.output_folder}/output_topk{args.top_k}_file_{index}.fasta'

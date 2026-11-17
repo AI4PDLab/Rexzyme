@@ -24,6 +24,7 @@ Everything else matches the original logic exactly:
 from __future__ import annotations
 
 import argparse
+import math
 import random
 import sys
 from pathlib import Path
@@ -36,7 +37,7 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, set_seed
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))  # src/
-from sequence_scoring import sequence_perplexities  # noqa: E402
+from sequence_scoring import generated_sequence_nll  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -329,13 +330,8 @@ def generate_fasta(
         )
         # Conditional perplexity P(seq | reaction) of the generated tokens. The decoder start
         # token that generate() prepends is not scored (see src/sequence_scoring.py).
-        ppls = sequence_perplexities(
-            model,
-            outputs,
-            model_inputs={"input_ids": input_ids, "attention_mask": encoder_inputs.get("attention_mask")},
-            pad_token_id=tokenizer_aa.pad_token_id,
-            batch_size=1,  # one row at a time keeps peak GPU memory as low as generation itself
-        )
+        nlls = generated_sequence_nll(model, outputs, input_ids, encoder_inputs.get("attention_mask"))
+        ppls = [math.exp(nll) for nll in nlls]
         for out_ids, ppl in zip(outputs, ppls):
             seq = tokenizer_aa.decode(out_ids, skip_special_tokens=True)
             all_records.append((seq, ppl))
