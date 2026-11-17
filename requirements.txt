@@ -2,3 +2,6 @@ torch
 transformers
 datasets
 numpy
+pandas
+huggingface_hub
+openpyxl  # only needed for .xlsx activity tables (dpo_proxy)

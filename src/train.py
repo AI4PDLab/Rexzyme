@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Minimal seq2seq training entry point for tokenized DatasetDict on disk.
 
-Expects the directory produced by ``tokenize.py`` (``DatasetDict.save_to_disk``).
+Expects the directory produced by ``tokenize_dataset.py`` (``DatasetDict.save_to_disk``).
 Extend hyperparameters and metrics as needed for your experiments.
 """
 
@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
 
 from datasets import DatasetDict, load_from_disk
 from transformers import (
@@ -27,13 +28,23 @@ except ImportError:
     torch = None  # type: ignore
 
 
+def split_hf_subfolder_ref(spec: str) -> tuple[str, str | None]:
+    """Support owner/repo/subfolder shorthand for Hub references."""
+    if Path(spec).exists():
+        return spec, None
+    parts = spec.strip("/").split("/")
+    if len(parts) >= 3:
+        return "/".join(parts[:2]), "/".join(parts[2:])
+    return spec, None
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train seq2seq model on tokenized Rexzyme data.")
     p.add_argument(
         "--tokenized_dir",
         required=True,
         type=str,
-        help="Directory passed to tokenize.py --output_dir (DatasetDict on disk).",
+        help="Directory passed to tokenize_dataset.py --output_dir (DatasetDict on disk).",
     )
     p.add_argument(
         "--model_name_or_path",
@@ -100,8 +111,17 @@ def main() -> None:
         meta = {}
         tok_path = args.model_name_or_path
 
-    tokenizer = AutoTokenizer.from_pretrained(tok_path)
-    model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name_or_path)
+    tokenizer_ref, tokenizer_subfolder = split_hf_subfolder_ref(tok_path)
+    tokenizer_kwargs = {}
+    if tokenizer_subfolder:
+        tokenizer_kwargs["subfolder"] = tokenizer_subfolder
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_ref, **tokenizer_kwargs)
+
+    model_ref, model_subfolder = split_hf_subfolder_ref(args.model_name_or_path)
+    model_kwargs = {}
+    if model_subfolder:
+        model_kwargs["subfolder"] = model_subfolder
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_ref, **model_kwargs)
     data_collator = DataCollatorForSeq2Seq(
         tokenizer=tokenizer,
         model=model,
