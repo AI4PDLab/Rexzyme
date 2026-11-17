@@ -11,7 +11,7 @@ attention-weighted pooling on the training set, mean/max/std pooling on the
 held-out set.
 
 ```bash
-python eval/embedding_distance/extract_encoder_embeddings.py \
+python src/eval/embedding_distance/extract_encoder_embeddings.py \
   --model-path AI4PD/REXzyme/checkpoint-90000 \
   --tokenizer-mol AI4PD/REXzyme/tokenizer_smiles \
   --train-file AI4PD/REXzyme \
@@ -20,7 +20,7 @@ python eval/embedding_distance/extract_encoder_embeddings.py \
   --layer-index 0 \
   --batch-size 16
 
-python eval/embedding_distance/embedding_distance_to_train.py \
+python src/eval/embedding_distance/embedding_distance_to_train.py \
   --train-embeddings embeddings/train_embeddings.pkl \
   --heldout-embeddings embeddings/heldout_embeddings.pkl \
   --smiles-map data/generated/generation_heldout/smiles_map.json \
@@ -29,7 +29,7 @@ python eval/embedding_distance/embedding_distance_to_train.py \
 ```
 
 The second script also writes `embedding_distance_by_file.tsv` using
-[`data/generated/generation_heldout/smiles_map.json`](../../data/generated/generation_heldout/smiles_map.json)
+[`data/generated/generation_heldout/smiles_map.json`](../../../data/generated/generation_heldout/smiles_map.json)
 so every `output_file_N.fasta` (including 1255) has a distance.
 
 Optional: pass `--fingerprints-json fingerprint_distances.json` to copy the

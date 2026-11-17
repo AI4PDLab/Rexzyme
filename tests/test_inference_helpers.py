@@ -35,7 +35,7 @@ def test_compute_transition_scores_prefers_the_selected_token() -> None:
 
 
 def test_load_reactions_from_smiles_map_jsonl_and_txt(tmp_path: Path) -> None:
-    from eval.embedding_distance import extract_encoder_embeddings as embeddings
+    from src.eval.embedding_distance import extract_encoder_embeddings as embeddings
 
     smiles_map = tmp_path / "smiles_map.json"
     smiles_map.write_text(

@@ -71,7 +71,6 @@ def dpo_style_records(n: int, ppls: list[float]) -> list[tuple[str, str]]:
 def work(tmp_path: Path) -> Path:
     """Scratch dir shaped like the repo root: scripts use paths relative to it."""
     (tmp_path / "src").symlink_to(ROOT / "src")
-    (tmp_path / "eval").symlink_to(ROOT / "eval")
     return tmp_path
 
 
@@ -96,7 +95,7 @@ SH_FILES = sorted(DESIGN.rglob("*.sh"))
 def test_expected_files_are_present() -> None:
     assert len(PY_FILES) == 11
     assert len(SH_FILES) == 21
-    assert (ROOT / "eval" / "clean" / "CLEAN_infer_fasta.py").is_file()
+    assert (ROOT / "src" / "eval" / "clean" / "CLEAN_infer_fasta.py").is_file()
 
 
 @pytest.mark.parametrize("path", PY_FILES, ids=lambda p: p.name)
@@ -178,7 +177,7 @@ def test_xlsx_input_dependency_is_declared() -> None:
 
 def test_eval_imports_are_in_requirements() -> None:
     declared = _requirement_names("requirements.txt", "requirements-eval.txt")
-    eval_files = [p for p in (ROOT / "eval").rglob("*.py")]
+    eval_files = [p for p in (ROOT / "src" / "eval").rglob("*.py")]
     local_dirs = [ROOT / "src", *{p.parent for p in eval_files}]
     needed = _third_party_imports(eval_files, local_dirs) - {"CLEAN"}  # CLEAN is an external tool
     needed = {IMPORT_TO_PACKAGE.get(m, m).lower() for m in needed}
@@ -215,9 +214,9 @@ def test_stage_wrappers_chain_on_their_default_filenames() -> None:
 
 
 def test_run_train_wrapper_uses_module_entrypoints() -> None:
-    # `python src/tokenize.py` shadows the stdlib `tokenize` module and crashes on import.
+    # Wrappers call the src modules with `python -m` from the repo root (same as run_inference.sh).
     script = (ROOT / "scripts" / "run_train.sh").read_text(encoding="utf-8")
-    assert "python -m src.tokenize" in script
+    assert "python -m src.tokenize_dataset" in script
     assert "python -m src.train" in script
     assert 'TOKENIZED_DIR="${TOKENIZED_DIR:-data/tokenized}"' in script
 
@@ -230,7 +229,7 @@ def test_run_train_wrapper_reports_missing_variables_cleanly(work: Path) -> None
 
 
 def test_readme_tokenize_command_works_with_hub_ids(work: Path, hub_tokenizers: Path) -> None:
-    """The fine-tuning README passes `AI4PD/REXzyme/<subfolder>` ids to src.tokenize."""
+    """The fine-tuning README passes `AI4PD/REXzyme/<subfolder>` ids to src.tokenize_dataset."""
     readme = (DESIGN / "README.md").read_text(encoding="utf-8")
     assert f"--tokenizer_aa {HUB_REPO}/tokenizer_aa" in readme
     data = work / "splits"
@@ -240,7 +239,7 @@ def test_readme_tokenize_command_works_with_hub_ids(work: Path, hub_tokenizers: 
     (data / "val.jsonl").write_text(line * 2)
     result = run(
         [
-            sys.executable, "-m", "src.tokenize",
+            sys.executable, "-m", "src.tokenize_dataset",
             "--dataset", data,
             "--tokenizer_aa", f"{HUB_REPO}/tokenizer_aa",
             "--tokenizer_mol", f"{HUB_REPO}/tokenizer_smiles",

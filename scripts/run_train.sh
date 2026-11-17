@@ -9,9 +9,9 @@ set -euo pipefail
 # Optional env:
 #   DATASET             Hub id (default: AI4PD/REXzyme — downloads train/val JSON)
 #   LOCAL_DATASET_PATH  If set, passed as --dataset instead of DATASET (local JSON file or split dir)
-#   TOKENIZED_DIR       Output of tokenize.py / input layout for train.py (default: data/tokenized)
-#   FORCE_TOKENIZE      If 1, always rerun tokenize.py
-#   HF_REVISION         Passed as --revision to tokenize.py when loading from the Hub
+#   TOKENIZED_DIR       Output of tokenize_dataset.py / input layout for train.py (default: data/tokenized)
+#   FORCE_TOKENIZE      If 1, always rerun tokenize_dataset.py
+#   HF_REVISION         Passed as --revision to tokenize_dataset.py when loading from the Hub
 #   TRUST_REMOTE_CODE   If 1, adds --trust_remote_code for Hub datasets
 #   OUTPUT_DIR          Training checkpoints (default: results/training_output)
 #   TRAIN_EXTRA_ARGS    Extra args appended to train.py (quoted string)
@@ -43,7 +43,7 @@ fi
 if [[ "${RUN_TOKENIZE}" == "1" ]]; then
   mkdir -p "${TOKENIZED_DIR}"
   TOKENIZE_CMD=(
-    python -m src.tokenize
+    python -m src.tokenize_dataset
     --dataset "${DATASET_ARG}"
     --tokenizer_aa "${TOKENIZER_AA}"
     --tokenizer_mol "${TOKENIZER_MOL}"

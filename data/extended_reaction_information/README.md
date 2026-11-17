@@ -12,7 +12,7 @@ Each folder matches one generation group. The TSV has one row per reaction, in t
 
 When one SMILES maps to several Rhea entries, IDs and EC labels are joined with `;`. `Not Found` means the mapping file had no EC for that entry.
 
-[`generation_heldout/rhea_uniprot_sequence_check_best.tsv`](generation_heldout/rhea_uniprot_sequence_check_best.tsv) adds UniProt accessions used by [`eval/gt_superpose/download_gt_pdbs.py`](../../eval/gt_superpose/download_gt_pdbs.py) to download ground-truth structures.
+[`generation_heldout/rhea_uniprot_sequence_check_best.tsv`](generation_heldout/rhea_uniprot_sequence_check_best.tsv) adds UniProt accessions used by [`src/eval/gt_superpose/download_gt_pdbs.py`](../../src/eval/gt_superpose/download_gt_pdbs.py) to download ground-truth structures.
 
 | Folder | Source reactions | Rows |
 |--------|------------------|------|

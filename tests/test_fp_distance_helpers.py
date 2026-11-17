@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("rdkit")
 
-from eval.fp_distance import fingerprint_dataset_distance as fp_distance
+from src.eval.fp_distance import fingerprint_dataset_distance as fp_distance
 
 
 def test_load_heldout_and_training_reactions(tmp_path: Path) -> None:
@@ -40,7 +40,7 @@ def test_load_heldout_and_training_reactions(tmp_path: Path) -> None:
 def test_identity_plot_parser_scales_percent_identity(tmp_path: Path) -> None:
     pytest.importorskip("matplotlib")
     pytest.importorskip("numpy")
-    from eval.train_identity import plot_mmseqs_identity_vs_alignment as identity_plot
+    from src.eval.train_identity import plot_mmseqs_identity_vs_alignment as identity_plot
 
     mmseqs = tmp_path / "hits.m8"
     mmseqs.write_text(

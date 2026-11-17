@@ -1,7 +1,7 @@
 # Source
 
 Tokenize a reaction–sequence dataset, train a seq2seq model, and generate
-enzyme FASTAs. Evaluation scripts live under [`../eval/`](../eval/) and expect
+enzyme FASTAs. Evaluation scripts live under [`eval/`](eval/) and expect
 FASTAs plus metadata already on disk.
 
 ## Scripts
@@ -9,9 +9,10 @@ FASTAs plus metadata already on disk.
 | Script | Role |
 |--------|------|
 | [`hf_assets.py`](hf_assets.py) | Resolve files from [AI4PD/REXzyme](https://huggingface.co/AI4PD/REXzyme) |
-| [`tokenize.py`](tokenize.py) | Hub-first or local JSON → tokenized `DatasetDict` |
+| [`tokenize_dataset.py`](tokenize_dataset.py) | Hub-first or local JSON → tokenized `DatasetDict` |
 | [`train.py`](train.py) | `Seq2SeqTrainer` on that `DatasetDict` |
 | [`inference.py`](inference.py) | Generate FASTAs from reaction SMILES |
+| [`sequence_scoring.py`](sequence_scoring.py) | Teacher-forced perplexity of `generate()` output (used for the FASTA `ppl` headers) |
 
 Wrappers: [`../scripts/run_inference.sh`](../scripts/run_inference.sh) (paper sampling) and [`../scripts/run_train.sh`](../scripts/run_train.sh).
 
@@ -38,9 +39,9 @@ The wrapper defaults to `AI4PD/REXzyme/checkpoint-90000`. See
 Optional flags on `inference.py`: `--top_k`, `--top_p`, `--repetition_penalty`,
 `--num_return_sequences`, `--seed`.
 
-## Dataset loading (tokenize)
+## Dataset loading (tokenize_dataset)
 
-[`tokenize.py`](tokenize.py) uses Hugging Face `datasets.load_dataset`:
+[`tokenize_dataset.py`](tokenize_dataset.py) uses Hugging Face `datasets.load_dataset`:
 
 | Source | `--dataset` value | Behavior |
 |--------|-------------------|----------|
@@ -61,7 +62,7 @@ Outputs: a `DatasetDict` in `--output_dir` (`dataset_dict.json`) and
 
 ## Example training
 
-[`../scripts/run_train.sh`](../scripts/run_train.sh) runs `tokenize.py` when
+[`../scripts/run_train.sh`](../scripts/run_train.sh) runs `tokenize_dataset.py` when
 `TOKENIZED_DIR/dataset_dict.json` is missing (or when `FORCE_TOKENIZE=1`),
 then [`train.py`](train.py).
 

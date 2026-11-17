@@ -33,7 +33,7 @@ Recommended: provide **two files in the same directory**, named exactly:
 - `train.json` (or `train.jsonl`)
 - `val.json` (or `val.jsonl`)
 
-`src/tokenize.py` auto-detects those names when `--dataset` points to a
+`src/tokenize_dataset.py` auto-detects those names when `--dataset` points to a
 directory. Other names (e.g. `training_dataset.json`) are **not** auto-detected
 — use `--data_files` to point to them explicitly (see Option A below).
 
@@ -44,12 +44,12 @@ training proceeds without a validation set (a warning is printed).
 
 Use the tokenization scripts provided in this repository.
 
-### Option A - Use `src/tokenize.py` directly
+### Option A - Use `src/tokenize_dataset.py` directly
 
 If our data is already split into `train.json` / `val.json` files in one directory:
 
 ```bash
-python -m src.tokenize \
+python -m src.tokenize_dataset \
   --dataset /path/to/your_splits_dir \
   --tokenizer_aa AI4PD/REXzyme/tokenizer_aa \
   --tokenizer_mol AI4PD/REXzyme/tokenizer_smiles \
@@ -59,7 +59,7 @@ python -m src.tokenize \
 If the files have other names, pass them explicitly with `--data_files`:
 
 ```bash
-python -m src.tokenize \
+python -m src.tokenize_dataset \
   --dataset /path/to/your_splits_dir \
   --data_files train=training_dataset.json \
   --data_files validation=validation_dataset.json \

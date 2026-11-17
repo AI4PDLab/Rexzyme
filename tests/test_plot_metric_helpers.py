@@ -5,8 +5,8 @@ import pytest
 pytest.importorskip("matplotlib", exc_type=ImportError)
 pytest.importorskip("numpy")
 
-from eval.clean import plot_clean_ec_accuracy as clean
-from eval.plddt import plot_plddt_by_group as plddt
+from src.eval.clean import plot_clean_ec_accuracy as clean
+from src.eval.plddt import plot_plddt_by_group as plddt
 
 
 def test_split_ec_labels_ignores_not_found_and_strips_prefix() -> None:
@@ -39,15 +39,15 @@ def test_mean_plddt_from_pdb_uses_ca_bfactors(tmp_path: Path) -> None:
     assert plddt.mean_plddt_from_pdb(pdb_path) == 80.0
 
 
-def test_find_pdb_files_requires_fold_directory(tmp_path: Path) -> None:
+def test_find_pdb_files_reads_only_the_group_folder(tmp_path: Path) -> None:
+    # Layout documented in src/eval/plddt/README.md: fold/generation_<group>/*.pdb
     group = tmp_path / "generation_most"
-    folded = group / "generation_output" / "inference_0" / "fold" / "folder_0"
-    folded.mkdir(parents=True)
-    (folded / "a.pdb").write_text("ATOM\n", encoding="utf-8")
-    skipped = group / "other"
-    skipped.mkdir()
-    (skipped / "b.pdb").write_text("ATOM\n", encoding="utf-8")
+    nested = group / "subfolder"
+    nested.mkdir(parents=True)
+    for name in ("b.pdb", "a.pdb", "notes.txt"):
+        (group / name).write_text("ATOM\n", encoding="utf-8")
+    (nested / "c.pdb").write_text("ATOM\n", encoding="utf-8")
 
     found = plddt.find_pdb_files(group)
 
-    assert found == [folded / "a.pdb"]
+    assert found == [group / "a.pdb", group / "b.pdb"]

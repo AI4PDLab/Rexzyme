@@ -9,7 +9,7 @@ Training reactions are read from `training_dataset.json` on
 That file is JSONL: `translation.Reaction` is the reaction SMILES.
 
 ```bash
-bash eval/fp_distance/run_fp_distance.sh \
+bash src/eval/fp_distance/run_fp_distance.sh \
   --smiles-map data/generated/generation_heldout/smiles_map.json \
   --train-json AI4PD/REXzyme \
   --output fingerprint_distances.json
@@ -18,7 +18,7 @@ bash eval/fp_distance/run_fp_distance.sh \
 Or the Python script directly:
 
 ```bash
-python eval/fp_distance/fingerprint_dataset_distance.py \
+python src/eval/fp_distance/fingerprint_dataset_distance.py \
   --smiles-map data/generated/generation_heldout/smiles_map.json \
   --train-json AI4PD/REXzyme \
   --output fingerprint_distances.json

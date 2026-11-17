@@ -1,8 +1,8 @@
 # Evaluation
 
 Scripts to reproduce the paper analyses after generating sequences with
-[`src/inference.py`](../src/inference.py) (or using the FASTAs already in
-[`data/generated/`](../data/generated/)).
+[`src/inference.py`](../inference.py) (or using the FASTAs already in
+[`data/generated/`](../../data/generated/)).
 
 ```bash
 python3 -m venv .venv
@@ -35,32 +35,32 @@ Every script takes input and output paths on the command line
 
 ## Reaction groups
 
-Each file in [`data/`](../data/) is one SMILES per line. Inference generates
+Each file in [`data/`](../../data/) is one SMILES per line. Inference generates
 25 sequences per reaction.
 
 | Group | Reaction file | Training dataset |
 |-------|---------------|------------------|
-| `generation_most` | [`data/generation_most.txt`](../data/generation_most.txt) | >10,000 sequences / reaction |
-| `generation_middle` | [`data/generation_middle.txt`](../data/generation_middle.txt) | 100–10,000 |
-| `generation_low` | [`data/generation_low.txt`](../data/generation_low.txt) | <100 |
-| `generation_val_com` | [`data/generation_val_com.txt`](../data/generation_val_com.txt) | 0, same EC in training |
-| `generation_val_dif` | [`data/generation_val_dif.txt`](../data/generation_val_dif.txt) | 0, same EC not in training |
-| `generation_heldout` | [`data/generation_heldout.txt`](../data/generation_heldout.txt) | held-out Rhea reactions (0–1255) |
+| `generation_most` | [`data/generation_most.txt`](../../data/generation_most.txt) | >10,000 sequences / reaction |
+| `generation_middle` | [`data/generation_middle.txt`](../../data/generation_middle.txt) | 100–10,000 |
+| `generation_low` | [`data/generation_low.txt`](../../data/generation_low.txt) | <100 |
+| `generation_val_com` | [`data/generation_val_com.txt`](../../data/generation_val_com.txt) | 0, same EC in training |
+| `generation_val_dif` | [`data/generation_val_dif.txt`](../../data/generation_val_dif.txt) | 0, same EC not in training |
+| `generation_heldout` | [`data/generation_heldout.txt`](../../data/generation_heldout.txt) | held-out Rhea reactions (0–1255) |
 
-Paper sequences: [`data/generated/`](../data/generated/). Rhea / EC tables:
-[`data/extended_reaction_information/`](../data/extended_reaction_information/).
+Paper sequences: [`data/generated/`](../../data/generated/). Rhea / EC tables:
+[`data/extended_reaction_information/`](../../data/extended_reaction_information/).
 
 Training and validation JSON are on
 [Hugging Face: AI4PD/REXzyme](https://huggingface.co/AI4PD/REXzyme).
 They are JSONL files (`{"translation": {"Reaction": "...", "Sequence": "..."}}`).
 Scripts that need them default to that repo (`--train-json AI4PD/REXzyme`)
 and download `training_dataset.json` via `huggingface_hub`. Or run
-[`scripts/download_hf_assets.py`](../scripts/download_hf_assets.py) first.
+[`scripts/download_hf_assets.py`](../../scripts/download_hf_assets.py) first.
 
 ## Held-out pipeline (reactions 0–1255)
 
 End-to-end structural generalisation, after sequences exist in
-[`data/generated/generation_heldout/`](../data/generated/generation_heldout/):
+[`data/generated/generation_heldout/`](../../data/generated/generation_heldout/):
 
 1. Fold designs ([`plddt/run-esm.py`](plddt/run-esm.py)) into
    `designs/output_file_<N>/pdbs/*.pdb`.
@@ -83,7 +83,7 @@ See [`plddt/README.md`](plddt/README.md).
 2. Plot mean ESMFold pLDDT by group with [`plddt/plot_plddt_by_group.py`](plddt/plot_plddt_by_group.py).
 
 ```bash
-python eval/plddt/plot_plddt_by_group.py \
+python src/eval/plddt/plot_plddt_by_group.py \
   --fold-dir fold \
   --output plddt_by_training_group
 ```
@@ -101,14 +101,14 @@ Run CLEAN on generated FASTAs with [`clean/CLEAN_infer_fasta.py`](clean/CLEAN_in
 
 ```bash
 cd /path/to/CLEAN/app
-python /path/to/Rexzyme_nuria/eval/clean/CLEAN_infer_fasta.py \
-  --input-fasta /path/to/Rexzyme_nuria/data/generated/generation_most/output_topk100_file_1.fasta
+python /path/to/Rexzyme/src/eval/clean/CLEAN_infer_fasta.py \
+  --input-fasta /path/to/Rexzyme/data/generated/generation_most/output_topk100_file_1.fasta
 ```
 
 Then generate the group-level plot:
 
 ```bash
-python eval/clean/plot_clean_ec_accuracy.py \
+python src/eval/clean/plot_clean_ec_accuracy.py \
   --most-csv most_predictions.csv \
   --most-ec data/extended_reaction_information/generation_most/generation_most.tsv \
   --output clean_ec_accuracy
@@ -126,7 +126,7 @@ See [`train_identity/README.md`](train_identity/README.md).
 3. Plot identity versus alignment length with [`train_identity/plot_mmseqs_identity_vs_alignment.py`](train_identity/plot_mmseqs_identity_vs_alignment.py).
 
 ```bash
-python eval/train_identity/plot_mmseqs_identity_vs_alignment.py \
+python src/eval/train_identity/plot_mmseqs_identity_vs_alignment.py \
   --input /path/to/mmseqs_output \
   --output mmseqs_hexbin \
   --title ">10,000 sequences per reaction" \

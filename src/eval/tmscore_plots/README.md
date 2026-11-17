@@ -14,7 +14,7 @@ step.
 ## 1. TM-score versus pLDDT
 
 ```bash
-python eval/tmscore_plots/plot_tmscore_vs_plddt.py \
+python src/eval/tmscore_plots/plot_tmscore_vs_plddt.py \
   --master /path/to/superposition_ground_truth_designs/all_tmscores.tsv \
   --designs /path/to/designs \
   --out-prefix tmscore_vs_plddt
@@ -26,14 +26,14 @@ python eval/tmscore_plots/plot_tmscore_vs_plddt.py \
 
 ## 2. TM-score versus fingerprint distance
 
-Compute distances first ([`eval/fp_distance/`](../fp_distance/README.md)):
+Compute distances first ([`src/eval/fp_distance/`](../fp_distance/README.md)):
 
 ```bash
-bash eval/fp_distance/run_fp_distance.sh \
+bash src/eval/fp_distance/run_fp_distance.sh \
   --smiles-map data/generated/generation_heldout/smiles_map.json \
   --output fingerprint_distances.json
 
-python eval/tmscore_plots/plot_tmscore_vs_fp_distance.py \
+python src/eval/tmscore_plots/plot_tmscore_vs_fp_distance.py \
   --plddt-tsv tmscore_vs_plddt.tsv \
   --fp fingerprint_distances.json \
   --out-prefix tmscore_vs_fp_distance
@@ -42,18 +42,18 @@ python eval/tmscore_plots/plot_tmscore_vs_fp_distance.py \
 ## 3. TM-score versus sequence identity
 
 Search designs against the training sequences
-([`eval/designs_vs_train/`](../designs_vs_train/README.md)):
+([`src/eval/designs_vs_train/`](../designs_vs_train/README.md)):
 
 ```bash
-python eval/train_identity/mmseq_file_preparation.py \
+python src/eval/train_identity/mmseq_file_preparation.py \
   --json_file AI4PD/REXzyme \
   --output training_dataset.fasta
-bash eval/designs_vs_train/run_mmseqs_designs_vs_train.sh \
+bash src/eval/designs_vs_train/run_mmseqs_designs_vs_train.sh \
   --query data/generated/generation_heldout/all_sequences_with_filenames.fasta \
   --target training_dataset.fasta \
   --output designs_vs_train
 
-python eval/tmscore_plots/plot_tmscore_vs_seq_id.py \
+python src/eval/tmscore_plots/plot_tmscore_vs_seq_id.py \
   --plddt-tsv tmscore_vs_plddt.tsv \
   --mmseqs designs_vs_train/designs_vs_train.best.tsv \
   --out-prefix tmscore_vs_seq_id
@@ -62,21 +62,21 @@ python eval/tmscore_plots/plot_tmscore_vs_seq_id.py \
 ## 4. TM-score versus encoder embedding distance
 
 Extract embeddings and nearest-neighbour distances
-([`eval/embedding_distance/`](../embedding_distance/README.md)):
+([`src/eval/embedding_distance/`](../embedding_distance/README.md)):
 
 ```bash
-python eval/embedding_distance/extract_encoder_embeddings.py \
+python src/eval/embedding_distance/extract_encoder_embeddings.py \
   --model-path AI4PD/REXzyme/checkpoint-90000 \
   --tokenizer-mol AI4PD/REXzyme/tokenizer_smiles \
   --train-file AI4PD/REXzyme \
   --output embeddings
 
-python eval/embedding_distance/embedding_distance_to_train.py \
+python src/eval/embedding_distance/embedding_distance_to_train.py \
   --train-embeddings embeddings/train_embeddings.pkl \
   --heldout-embeddings embeddings/heldout_embeddings.pkl \
   --output embeddings/heldout_embedding_distance_to_train.json
 
-python eval/tmscore_plots/plot_tmscore_vs_embed_distance.py \
+python src/eval/tmscore_plots/plot_tmscore_vs_embed_distance.py \
   --plddt-tsv tmscore_vs_plddt.tsv \
   --embedding-tsv embeddings/embedding_distance_by_file.tsv \
   --out-prefix tmscore_vs_embed_distance

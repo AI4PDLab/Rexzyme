@@ -18,11 +18,11 @@ class PublicWiringContracts(TestCase):
 
     def test_eval_accepts_inference_metadata_fallback(self) -> None:
         inference_source = (ROOT / "src" / "inference.py").read_text(encoding="utf-8")
-        gt_eval_source = (ROOT / "eval" / "gt_acc" / "gt_inference_mmseq.py").read_text(
+        gt_eval_source = (ROOT / "src" / "eval" / "gt_acc" / "gt_inference_mmseq.py").read_text(
             encoding="utf-8"
         )
         permutation_source = (
-            ROOT / "eval" / "gt_acc" / "gt_permutation_mmseq_eval.py"
+            ROOT / "src" / "eval" / "gt_acc" / "gt_permutation_mmseq_eval.py"
         ).read_text(encoding="utf-8")
 
         self.assertIn("inference_metadata.json", inference_source)
@@ -33,10 +33,10 @@ class PublicWiringContracts(TestCase):
 def test_training_wrapper_points_to_existing_public_entrypoints() -> None:
     script = (ROOT / "scripts" / "run_train.sh").read_text(encoding="utf-8")
 
-    assert "python -m src.tokenize" in script
+    assert "python -m src.tokenize_dataset" in script
     assert "python -m src.train" in script
     assert 'DATASET="${DATASET:-AI4PD/REXzyme}"' in script
-    assert (ROOT / "src" / "tokenize.py").is_file()
+    assert (ROOT / "src" / "tokenize_dataset.py").is_file()
     assert (ROOT / "src" / "train.py").is_file()
 
 
@@ -52,14 +52,14 @@ def test_inference_wrapper_uses_paper_hub_defaults() -> None:
 
 
 def test_eval_wrappers_source_hub_and_heldout_range() -> None:
-    fp_script = (ROOT / "eval" / "fp_distance" / "run_fp_distance.sh").read_text(
+    fp_script = (ROOT / "src" / "eval" / "fp_distance" / "run_fp_distance.sh").read_text(
         encoding="utf-8"
     )
     mmseqs_script = (
-        ROOT / "eval" / "designs_vs_train" / "run_mmseqs_designs_vs_train.sh"
+        ROOT / "src" / "eval" / "designs_vs_train" / "run_mmseqs_designs_vs_train.sh"
     ).read_text(encoding="utf-8")
     superpose_script = (
-        ROOT / "eval" / "gt_superpose" / "superpose_designs_to_gt.sh"
+        ROOT / "src" / "eval" / "gt_superpose" / "superpose_designs_to_gt.sh"
     ).read_text(encoding="utf-8")
     download_script = (ROOT / "scripts" / "download_hf_assets.py").read_text(
         encoding="utf-8"
@@ -77,7 +77,7 @@ def test_eval_wrappers_source_hub_and_heldout_range() -> None:
     assert "1255" in superpose_script
     assert "training_dataset.json" in download_script
     assert "validation_dataset.json" in download_script
-    assert (ROOT / "eval" / "fp_distance" / "fingerprint_dataset_distance.py").is_file()
+    assert (ROOT / "src" / "eval" / "fp_distance" / "fingerprint_dataset_distance.py").is_file()
 
 
 def test_inference_tokenizer_subfolders_match_hub_layout() -> None:
@@ -89,7 +89,7 @@ def test_inference_tokenizer_subfolders_match_hub_layout() -> None:
 
 
 def test_tokenize_defaults_to_model_repo_json() -> None:
-    source = (ROOT / "src" / "tokenize.py").read_text(encoding="utf-8")
+    source = (ROOT / "src" / "tokenize_dataset.py").read_text(encoding="utf-8")
 
     assert 'DEFAULT_HUB_DATASET = "AI4PD/REXzyme"' in source
     assert "training_dataset.json" in source
@@ -107,7 +107,7 @@ def test_heldout_reaction_list_covers_0_through_1255() -> None:
 
 
 def test_paper_tmscore_tables_include_reaction_1255() -> None:
-    plots = ROOT / "eval" / "tmscore_plots"
+    plots = ROOT / "src" / "eval" / "tmscore_plots"
     expected = {
         "tmscore_vs_plddt.tsv": "reaction\tdesign\tmean_plddt\tbest_ttmscore",
         "tmscore_vs_fp_distance.tsv": "reaction\tbest_design\tmean_plddt\tmin_distance\tbest_ttmscore",

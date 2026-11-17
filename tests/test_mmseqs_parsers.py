@@ -2,8 +2,8 @@ import pytest
 
 pytest.importorskip("numpy")
 
-from eval.gt_acc import gt_mmseq_interpretation_balanced as balanced
-from eval.gt_acc import gt_permutation_mmseq_eval as permutation
+from src.eval.gt_acc import gt_mmseq_interpretation_balanced as balanced
+from src.eval.gt_acc import gt_permutation_mmseq_eval as permutation
 
 
 def test_balanced_mmseq_parser_counts_empty_hits_as_zero(tmp_path) -> None:

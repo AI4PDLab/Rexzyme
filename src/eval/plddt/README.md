@@ -12,7 +12,7 @@ ESMFold is loaded from Hugging Face (`facebook/esmfold_v1` by default).
 PDBs to `--output_path`:
 
 ```bash
-python eval/plddt/run-esm.py \
+python src/eval/plddt/run-esm.py \
   --fasta_path data/generated/generation_most \
   --output_path fold/generation_most
 ```
@@ -37,7 +37,7 @@ fold/generation_val_dif/*.pdb
 ```
 
 ```bash
-python eval/plddt/plot_plddt_by_group.py \
+python src/eval/plddt/plot_plddt_by_group.py \
   --fold-dir fold \
   --output plddt_by_training_group
 ```
@@ -50,7 +50,7 @@ and TSV prefix.
 output directory:
 
 ```bash
-python eval/plddt/plot_plddt.py \
+python src/eval/plddt/plot_plddt.py \
   --results_folder fold/generation_most \
   --output fold/generation_most/average_scatter_plot.png \
   --top_k 100

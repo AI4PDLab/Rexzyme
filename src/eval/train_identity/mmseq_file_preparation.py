@@ -214,7 +214,7 @@ def main():
         import sys
         from pathlib import Path as _Path
 
-        sys.path.append(str(_Path(__file__).resolve().parents[2] / "src"))
+        sys.path.append(str(_Path(__file__).resolve().parents[3] / "src"))
         from hf_assets import resolve_train_json
 
         json_path = str(resolve_train_json(args.json_file))

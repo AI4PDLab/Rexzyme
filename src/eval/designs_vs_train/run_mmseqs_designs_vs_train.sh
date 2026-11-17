@@ -4,7 +4,7 @@
 #   query   : data/generated/generation_heldout/all_sequences_with_filenames.fasta
 #             (31,400 sequences; reactions 0-1255, 25 designs each)
 #   target  : training FASTA (build from Hugging Face training JSON with
-#             eval/train_identity/mmseq_file_preparation.py --json_file AI4PD/REXzyme)
+#             src/eval/train_identity/mmseq_file_preparation.py --json_file AI4PD/REXzyme)
 #   results : $OUT/designs_vs_train.m8
 #             $OUT/designs_vs_train.best.tsv   (best hit per design)
 #
@@ -23,7 +23,7 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/../../.." && pwd)
 
 MMSEQS=${MMSEQS:-mmseqs}
 QUERY=${QUERY:-$REPO_ROOT/data/generated/generation_heldout/all_sequences_with_filenames.fasta}

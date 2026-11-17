@@ -12,7 +12,7 @@ reads that format (or a JSON array; `Protein sequence` is a fallback).
 ## 1. Prepare FASTAs
 
 ```bash
-python eval/train_identity/mmseq_file_preparation.py \
+python src/eval/train_identity/mmseq_file_preparation.py \
   --json_file AI4PD/REXzyme \
   --output training_dataset.fasta
 ```
@@ -25,7 +25,7 @@ python eval/train_identity/mmseq_file_preparation.py \
 Run MMseqs against `training_dataset.fasta`, then:
 
 ```bash
-python eval/train_identity/mmseq_interpretation.py \
+python src/eval/train_identity/mmseq_interpretation.py \
   --mmseqs_path /path/to/mmseqs_dir \
   --query_fasta /path/to/query.fasta \
   --output-dir /path/to/identity_results
@@ -34,7 +34,7 @@ python eval/train_identity/mmseq_interpretation.py \
 ## 3. Plot identity versus alignment length
 
 ```bash
-python eval/train_identity/plot_mmseqs_identity_vs_alignment.py \
+python src/eval/train_identity/plot_mmseqs_identity_vs_alignment.py \
   --input /path/to/mmseqs_output \
   --output mmseqs_hexbin \
   --title ">10,000 sequences per reaction" \

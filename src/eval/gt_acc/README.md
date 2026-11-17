@@ -23,7 +23,7 @@ maps each generated FASTA back to its reaction SMILES.
 ## 1. Build GT FASTAs and run MMseqs
 
 ```bash
-python eval/gt_acc/gt_inference_mmseq.py \
+python src/eval/gt_acc/gt_inference_mmseq.py \
   --input data/generation_most.txt \
   --inference_folder data/generated/generation_most \
   --dataset_json AI4PD/REXzyme \
@@ -37,7 +37,7 @@ GT FASTAs and MMseqs hits are written.
 ## 2. Summarise balanced identity
 
 ```bash
-python eval/gt_acc/gt_mmseq_interpretation_balanced.py \
+python src/eval/gt_acc/gt_mmseq_interpretation_balanced.py \
   --mmseqs_path gt_fastas \
   --inference_folder data/generated/generation_most \
   --gt_fasta_folder gt_fastas \
@@ -47,7 +47,7 @@ python eval/gt_acc/gt_mmseq_interpretation_balanced.py \
 ## 3. Permutation control
 
 ```bash
-python eval/gt_acc/gt_permutation_mmseq_eval.py \
+python src/eval/gt_acc/gt_permutation_mmseq_eval.py \
   --inference_folder data/generated/generation_most \
   --gt_fasta_folder gt_fastas \
   --output-dir gt_permutation_results

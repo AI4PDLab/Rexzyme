@@ -4,13 +4,13 @@ Search all generated held-out sequences against the training sequences with
 MMseqs (reactions 0–1255, 25 designs each).
 
 The query FASTA is already in the repository:
-[`data/generated/generation_heldout/all_sequences_with_filenames.fasta`](../../data/generated/generation_heldout/all_sequences_with_filenames.fasta).
+[`data/generated/generation_heldout/all_sequences_with_filenames.fasta`](../../../data/generated/generation_heldout/all_sequences_with_filenames.fasta).
 
 Build a training FASTA from the Hugging Face training JSON (JSONL with
 `translation.Reaction` and `translation.Sequence`):
 
 ```bash
-python eval/train_identity/mmseq_file_preparation.py \
+python src/eval/train_identity/mmseq_file_preparation.py \
   --json_file AI4PD/REXzyme \
   --output training_dataset.fasta
 ```
@@ -18,7 +18,7 @@ python eval/train_identity/mmseq_file_preparation.py \
 Then:
 
 ```bash
-bash eval/designs_vs_train/run_mmseqs_designs_vs_train.sh \
+bash src/eval/designs_vs_train/run_mmseqs_designs_vs_train.sh \
   --query data/generated/generation_heldout/all_sequences_with_filenames.fasta \
   --target training_dataset.fasta \
   --output designs_vs_train

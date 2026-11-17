@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from eval.gt_superpose import apply_reliability_filter as reliability
-from eval.gt_superpose import download_gt_pdbs as download_gt
-from eval.train_identity import mmseq_file_preparation as mmseq_prep
+from src.eval.gt_superpose import apply_reliability_filter as reliability
+from src.eval.gt_superpose import download_gt_pdbs as download_gt
+from src.eval.train_identity import mmseq_file_preparation as mmseq_prep
 
 
 def test_parse_reaction_number_and_smiles_map(tmp_path: Path) -> None:

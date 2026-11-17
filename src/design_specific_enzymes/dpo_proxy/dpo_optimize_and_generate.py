@@ -24,8 +24,8 @@ Everything else matches the original logic exactly:
 from __future__ import annotations
 
 import argparse
-import math
 import random
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -34,6 +34,9 @@ import torch.nn.functional as F
 from torch.optim import AdamW
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, set_seed
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))  # src/
+from sequence_scoring import sequence_perplexities  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -296,25 +299,6 @@ def eval_epoch(
 # Generation (original seq_gen.py logic, adapted)
 # ---------------------------------------------------------------------------
 
-def compute_perplexity(
-    model: AutoModelForSeq2SeqLM,
-    tokenizer_aa: AutoTokenizer,
-    tokenizer_mol: AutoTokenizer,
-    reaction: str,
-    seq_ids: torch.Tensor,
-    device: torch.device,
-) -> float:
-    """Conditional perplexity P(seq | reaction) via model.loss."""
-    src = tokenizer_mol(reaction, return_tensors="pt").to(device)
-    labels = seq_ids.clone()
-    pad_id = tokenizer_aa.pad_token_id
-    if pad_id is not None:
-        labels = labels.masked_fill(labels == pad_id, -100)
-    with torch.no_grad():
-        outputs = model(**src, labels=labels)
-    return math.exp(outputs.loss.item())
-
-
 def generate_fasta(
     model: AutoModelForSeq2SeqLM,
     tokenizer_aa: AutoTokenizer,
@@ -329,7 +313,8 @@ def generate_fasta(
     sequences, sorted ascending by perplexity.
     """
     model.eval()
-    input_ids = tokenizer_mol(reaction, return_tensors="pt").input_ids.to(device)
+    encoder_inputs = tokenizer_mol(reaction, return_tensors="pt").to(device)
+    input_ids = encoder_inputs.input_ids
     all_records: list[tuple[str, float]] = []
 
     for round_idx in range(args.generation_rounds):
@@ -342,11 +327,17 @@ def generate_fasta(
             do_sample=True,
             num_return_sequences=args.num_return_sequences,
         )
-        for out_ids in outputs:
+        # Conditional perplexity P(seq | reaction) of the generated tokens. The decoder start
+        # token that generate() prepends is not scored (see src/sequence_scoring.py).
+        ppls = sequence_perplexities(
+            model,
+            outputs,
+            model_inputs={"input_ids": input_ids, "attention_mask": encoder_inputs.get("attention_mask")},
+            pad_token_id=tokenizer_aa.pad_token_id,
+            batch_size=1,  # one row at a time keeps peak GPU memory as low as generation itself
+        )
+        for out_ids, ppl in zip(outputs, ppls):
             seq = tokenizer_aa.decode(out_ids, skip_special_tokens=True)
-            ppl = compute_perplexity(
-                model, tokenizer_aa, tokenizer_mol, reaction, out_ids.unsqueeze(0), device
-            )
             all_records.append((seq, ppl))
         if (round_idx + 1) % 50 == 0:
             print(f"  Generation round {round_idx + 1}/{args.generation_rounds} "

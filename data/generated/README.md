@@ -16,8 +16,8 @@ Regenerate them with [`../../scripts/run_inference.sh`](../../scripts/run_infere
 | [`generation_val_dif/`](generation_val_dif/) | [`../generation_val_dif.txt`](../generation_val_dif.txt) | 20 × 25 = 500 |
 | [`generation_heldout/`](generation_heldout/) | [`../generation_heldout.txt`](../generation_heldout.txt) | 1,256 × 25 = 31,400 |
 
-These folders use the same `generation_*` names expected by the group-level scripts in [`eval/`](../../eval/).
+These folders use the same `generation_*` names expected by the group-level scripts in [`src/eval/`](../../src/eval/).
 
 [`generation_heldout/`](generation_heldout/) is the generalisation set: Rhea reactions not present in the training data (indices **0–1255**). Sequences are in a single FASTA, `all_sequences_with_filenames.fasta`. Headers are `output_file_N_K_ppl_...` (reaction `N`, sequence `K`). `smiles_map.json` maps `output_file_N.fasta` to the corresponding SMILES.
 
-Paper TM-score analyses of this set: [`eval/tmscore_plots/`](../../eval/tmscore_plots/).
+Paper TM-score analyses of this set: [`src/eval/tmscore_plots/`](../../src/eval/tmscore_plots/).

@@ -20,14 +20,14 @@ import pickle
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+sys.path.append(str(Path(__file__).resolve().parents[3] / "src"))
 from hf_assets import DEFAULT_HF_REPO, resolve_train_json
 
 from rdkit import DataStructs
 from rdkit.Chem import rdChemReactions
 from rdkit.DataStructs.cDataStructs import ExplicitBitVect
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SMILES_MAP = (
     REPO_ROOT / "data" / "generated" / "generation_heldout" / "smiles_map.json"
 )

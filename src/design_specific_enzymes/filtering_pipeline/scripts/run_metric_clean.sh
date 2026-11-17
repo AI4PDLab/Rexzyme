@@ -33,7 +33,7 @@ FASTA_STEM="${FASTA_BASENAME%.*}"
 mkdir -p "${CLEAN_APP_DIR}/data/inputs"
 cp "${INPUT_FASTA}" "${CLEAN_APP_DIR}/data/inputs/${FASTA_BASENAME}"
 
-(cd "${CLEAN_APP_DIR}" && python "${REXZYME_ROOT}/eval/clean/CLEAN_infer_fasta.py" -d "${FASTA_STEM}")
+(cd "${CLEAN_APP_DIR}" && python "${REXZYME_ROOT}/src/eval/clean/CLEAN_infer_fasta.py" -d "${FASTA_STEM}")
 
 # Depending on the CLEAN version the prediction file is <stem>.csv or <stem>_maxsep.csv.
 CLEAN_OUTPUT=""

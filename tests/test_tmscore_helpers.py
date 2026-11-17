@@ -6,10 +6,10 @@ pytest.importorskip("matplotlib", exc_type=ImportError)
 pytest.importorskip("numpy")
 pytest.importorskip("scipy")
 
-from eval.tmscore_plots import common
-from eval.tmscore_plots import plot_tmscore_vs_embed_distance as embed_plot
-from eval.tmscore_plots import plot_tmscore_vs_fp_distance as fp_plot
-from eval.tmscore_plots import plot_tmscore_vs_seq_id as seq_plot
+from src.eval.tmscore_plots import common
+from src.eval.tmscore_plots import plot_tmscore_vs_embed_distance as embed_plot
+from src.eval.tmscore_plots import plot_tmscore_vs_fp_distance as fp_plot
+from src.eval.tmscore_plots import plot_tmscore_vs_seq_id as seq_plot
 
 
 def test_reaction_number_parses_underscore_and_hyphen_names() -> None:

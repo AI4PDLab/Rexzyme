@@ -29,7 +29,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SMILES_MAP = (
     REPO_ROOT / "data" / "generated" / "generation_heldout" / "smiles_map.json"
 )

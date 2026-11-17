@@ -16,7 +16,7 @@ From the root of this repository, create/activate a Python environment and
 install Rexzyme dependencies:
 
 ```bash
-cd /path/to/Rexzyme_nuria
+cd /path/to/Rexzyme
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -39,8 +39,8 @@ Run CLEAN inference from `CLEAN/app`. Pass the FASTA path with
 
 ```bash
 cd /path/to/CLEAN/app
-python /path/to/Rexzyme_nuria/eval/clean/CLEAN_infer_fasta.py \
-  --input-fasta /path/to/Rexzyme_nuria/data/generated/generation_most/output_topk100_file_1.fasta
+python /path/to/Rexzyme/src/eval/clean/CLEAN_infer_fasta.py \
+  --input-fasta /path/to/Rexzyme/data/generated/generation_most/output_topk100_file_1.fasta
 ```
 
 Notes:
@@ -59,7 +59,7 @@ prediction CSVs to reference EC tables. Pass one CSV and one TSV per group,
 then `--output` for the plot prefix:
 
 ```bash
-python eval/clean/plot_clean_ec_accuracy.py \
+python src/eval/clean/plot_clean_ec_accuracy.py \
   --most-csv most_predictions.csv \
   --most-ec data/extended_reaction_information/generation_most/generation_most.tsv \
   --middle-csv middle_predictions.csv \
@@ -72,4 +72,4 @@ Group flags: `--most-csv` / `--most-ec`, `--middle-csv` / `--middle-ec`,
 `--val-dif-csv` / `--val-dif-ec`.
 
 Reference TSV format (three columns: `smiles`, `rhea_id`, `ec`):
-[generation_most.tsv](../../data/extended_reaction_information/generation_most/generation_most.tsv).
+[generation_most.tsv](../../../data/extended_reaction_information/generation_most/generation_most.tsv).

@@ -44,11 +44,11 @@ Eval scripts that need the training reactions default to that Hub repo. To
 build a training FASTA for MMseqs:
 
 ```bash
-python eval/train_identity/mmseq_file_preparation.py \
+python src/eval/train_identity/mmseq_file_preparation.py \
   --json_file AI4PD/REXzyme \
   --output training_dataset.fasta
 ```
 
 Held-out TM-score tables from the paper (pLDDT, fingerprint distance, sequence
 identity, embedding distance) are in
-[`eval/tmscore_plots/`](../eval/tmscore_plots/).
+[`src/eval/tmscore_plots/`](../src/eval/tmscore_plots/).
